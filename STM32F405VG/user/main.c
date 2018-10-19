@@ -255,39 +255,31 @@ volatile u8 flag=0;
 void DMA2_Stream0_IRQHandler(void) {
 	//DMA_ClearITPendingBit(DMA2_Stream0,DMA_IT_TCIF0); // reset the interupt
 	 DMA_ClearITPendingBit(DMA2_Stream0, DMA_IT_TEIF0 | DMA_IT_DMEIF0 | DMA_IT_FEIF0 | DMA_IT_TCIF0 | DMA_IT_HTIF0);
+	 DMA_Cmd(DMA2_Stream0, DISABLE); // doesn't matter
 	 flag=1;
 }	
 
 
-void on9_adc(){
-	ADC_CommonInitTypeDef ADC_CommonInitStruct;
-	ADC_InitTypeDef ADC_InitStructure;
+
+void adc_gpio_init(){
 	GPIO_InitTypeDef GPIO_InitStructure;
-	DMA_InitTypeDef DMA_InitStructure; 
-	NVIC_InitTypeDef NVIC_InitStructure;
-
-
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE); 
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA2, ENABLE); 
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
-	
 	GPIO_StructInit(&GPIO_InitStructure);
-	
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
 	GPIO_InitStructure.GPIO_Speed = GPIO_High_Speed;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
 	GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
 	GPIO_Init(GPIOC, &GPIO_InitStructure);
-		
+
+}
+
+
+void adc_dma_init(){
+	ADC_InitTypeDef ADC_InitStructure;
+	DMA_InitTypeDef DMA_InitStructure;
+
 	ADC_DeInit();
-	ADC_CommonInitStruct.ADC_Mode = ADC_Mode_Independent;
-	ADC_CommonInitStruct.ADC_DMAAccessMode = ADC_DMAAccessMode_1;
-	ADC_CommonInitStruct.ADC_Prescaler = ADC_Prescaler_Div2;
-	ADC_CommonInitStruct.ADC_TwoSamplingDelay = ADC_TwoSamplingDelay_5Cycles;
-	ADC_CommonInit(&ADC_CommonInitStruct);
-	
-	//ADC init
 	ADC_InitStructure.ADC_ContinuousConvMode = ENABLE;
 	ADC_InitStructure.ADC_ScanConvMode = DISABLE;
 	ADC_InitStructure.ADC_Resolution = ADC_Resolution_12b;
@@ -319,11 +311,7 @@ void on9_adc(){
 	DMA_Init(DMA2_Stream0, &DMA_InitStructure);
 	
 	
-  NVIC_InitStructure.NVIC_IRQChannel = DMA2_Stream0_IRQn;
-  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
-  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
-  NVIC_Init(&NVIC_InitStructure);
+
 	
 	DMA_ITConfig(DMA2_Stream0, DMA_IT_TC, ENABLE);
 	DMA_Cmd(DMA2_Stream0, ENABLE);
@@ -333,7 +321,37 @@ void on9_adc(){
 	ADC_Cmd(ADC1, ENABLE);
 	ADC_SoftwareStartConv(ADC1);
 
+
 }
+
+void on9_adc(){
+	ADC_CommonInitTypeDef ADC_CommonInitStruct; 
+	NVIC_InitTypeDef NVIC_InitStructure;
+
+
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE); 
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA2, ENABLE); 
+	
+	adc_gpio_init();
+		
+	
+	ADC_CommonInitStruct.ADC_Mode = ADC_Mode_Independent;
+	ADC_CommonInitStruct.ADC_DMAAccessMode = ADC_DMAAccessMode_1;
+	ADC_CommonInitStruct.ADC_Prescaler = ADC_Prescaler_Div2;
+	ADC_CommonInitStruct.ADC_TwoSamplingDelay = ADC_TwoSamplingDelay_5Cycles;
+	ADC_CommonInit(&ADC_CommonInitStruct);
+	
+	//ADC init
+	adc_dma_init();
+	
+	NVIC_InitStructure.NVIC_IRQChannel = DMA2_Stream0_IRQn;
+  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+  NVIC_Init(&NVIC_InitStructure);
+
+}
+
 
 	
 
@@ -341,8 +359,7 @@ void on9_adc(){
 int main(void) {
 	SystemInit();
 	SystemCoreClockUpdate();
-	//gpio_rcc_init_all();
-	//ticks_init();
+
 	
 	//ticks_init();
 		dac_init(150,3);
@@ -350,20 +367,23 @@ int main(void) {
 		uart_init(COM1, 115200);
 		//adc_init();
 		on9_adc();
+		btn_init();
 	_delay_ms(10);
 	while(1)
 	{
 	if(flag){
+		uart_tx(COM1,"%d,",0);
+		_delay_ms(10);
 	 for(u16 j=0;j<100;j++){
 			uart_tx(COM1,"%d,",on9ADC[j]);
 			_delay_ms(10);
 		}
-		while(1){}
+		flag = 0;
 	}
-
-			
-		
-		
+	if(btn_pressed(BUTTON_1)){
+		DMA_ClearITPendingBit(DMA2_Stream0, DMA_IT_TEIF0 | DMA_IT_DMEIF0 | DMA_IT_FEIF0 | DMA_IT_TCIF0 | DMA_IT_HTIF0);
+		adc_dma_init();
+	}	
 	}	
 	
 	/*u16 i=100;
