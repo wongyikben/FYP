@@ -1,5 +1,7 @@
 #include "main.h"
 
+#define sense_buffer 100
+
 const uint16_t Sine12bit[64] = {
                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 											0, 0, 0, 0, 0,0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -249,7 +251,7 @@ void test_init(void){
 
 
 
-volatile u16 on9ADC[100];
+volatile u16 on9ADC[sense_buffer];
 volatile u8 flag=0;
 
 void DMA2_Stream0_IRQHandler(void) {
@@ -307,7 +309,7 @@ void adc_dma_init(){
 	DMA_InitStructure.DMA_Channel =  DMA_Channel_0;
 	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t) &(ADC1)->DR;
 	DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t) &(on9ADC);
-	DMA_InitStructure.DMA_BufferSize = 100;
+	DMA_InitStructure.DMA_BufferSize = sense_buffer;
 	DMA_Init(DMA2_Stream0, &DMA_InitStructure);
 	
 	
@@ -352,8 +354,11 @@ void on9_adc(){
 
 }
 
+void reset_dma_adc(){
+		DMA_ClearITPendingBit(DMA2_Stream0, DMA_IT_TEIF0 | DMA_IT_DMEIF0 | DMA_IT_FEIF0 | DMA_IT_TCIF0 | DMA_IT_HTIF0);
+		adc_dma_init();
+}
 
-	
 
 
 int main(void) {
@@ -371,18 +376,21 @@ int main(void) {
 	_delay_ms(10);
 	while(1)
 	{
-	if(flag){
-		uart_tx(COM1,"%d,",0);
-		_delay_ms(10);
-	 for(u16 j=0;j<100;j++){
-			uart_tx(COM1,"%d,",on9ADC[j]);
+		for(u16 k=0;k<1000;){
+		if(flag){
+		for(u16 j=2;j<sense_buffer;j++){
+		 uart_tx(COM1,"%d,",on9ADC[j]);
 			_delay_ms(10);
 		}
+		uart_tx(COM1,";");
 		flag = 0;
-	}
+		_delay_ms(500);
+		k++;
+		reset_dma_adc();
+			}
+		}
 	if(btn_pressed(BUTTON_1)){
-		DMA_ClearITPendingBit(DMA2_Stream0, DMA_IT_TEIF0 | DMA_IT_DMEIF0 | DMA_IT_FEIF0 | DMA_IT_TCIF0 | DMA_IT_HTIF0);
-		adc_dma_init();
+			reset_dma_adc();
 	}	
 	}	
 	

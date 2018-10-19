@@ -1,0 +1,18 @@
+function pk = pk2pk(input)
+
+fil = [1 2 4 2 1];
+fil = fil./sum(fil);
+
+fil_size = size(fil);
+fil_size = fil_size(2);
+
+input_size = size(input);
+input_size = input_size(2);
+
+after = conv(fil,input);
+after_size = size(after);
+after_size = after_size(2);
+after = after(fil_size-1:after_size);
+
+pk = max(after)-min(after);
+plot()
