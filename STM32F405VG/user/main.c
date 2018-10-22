@@ -323,8 +323,66 @@ void adc_dma_init(){
 	ADC_Cmd(ADC1, ENABLE);
 	ADC_SoftwareStartConv(ADC1);
 
-
 }
+
+
+
+u32 median(u8 n, u32* x) {
+    u16 temp;
+    u8 i, j;
+    // the following two loops sort the array x in ascending order
+    for(i=0; i<n-1; i++) {
+        for(j=i+1; j<n; j++) {
+            if(x[j] < x[i]) {
+                // swap elements
+                temp = x[i];
+                x[i] = x[j];
+                x[j] = temp;
+            }
+        }
+    }
+
+    if(n%2==0) {
+        // if there is an even number of elements, return mean of the two elements in the middle
+        return((x[n/2] + x[n/2 - 1]) >>1);
+    } else {
+        // else return the element in the middle
+        return x[n/2];
+    }
+}
+
+
+
+
+u32 pk2pk(volatile u16* input){
+	u32 temp = 0;
+	for(u8 i=2;i<sense_buffer-3;i++){
+		temp = input[i]+input[i+1]+input[i+2]+input[i+3];
+		temp = temp>>2;
+		input[i] = temp;
+	}
+
+	u8 peak_num[2]={0,0};
+	u32 peak[2]={0,0};
+	
+	for(u8 i=3;i<sense_buffer-4;i++){ 
+		if(input[i-1]>input[i]&&input[i+1]>input[i]){ //min
+			peak[0]+=input[i];
+			peak_num[0]++;
+		}
+		if(input[i-1]<input[i]&&input[i+1]<input[i]){ //max
+			peak[1]+=input[i];
+			peak_num[1]++;
+		}
+	}
+	
+	peak[0]/=peak_num[0];
+	peak[1]/=peak_num[1];
+	
+	return peak[1]-peak[0];
+}
+
+
 
 void on9_adc(){
 	ADC_CommonInitTypeDef ADC_CommonInitStruct; 
@@ -367,7 +425,7 @@ int main(void) {
 
 	
 	//ticks_init();
-		dac_init(150,3);
+		dac_init(100,3);
 		//timer_init();
 		uart_init(COM1, 115200);
 		//adc_init();
@@ -376,18 +434,15 @@ int main(void) {
 	_delay_ms(10);
 	while(1)
 	{
-		for(u16 k=0;k<1000;){
+
 		if(flag){
 		for(u16 j=2;j<sense_buffer;j++){
 		 uart_tx(COM1,"%d,",on9ADC[j]);
 			_delay_ms(10);
 		}
-		uart_tx(COM1,";");
+		uart_tx(COM1,"\n");
+		uart_tx(COM1,"%d;",pk2pk(on9ADC));
 		flag = 0;
-		_delay_ms(500);
-		k++;
-		reset_dma_adc();
-			}
 		}
 	if(btn_pressed(BUTTON_1)){
 			reset_dma_adc();
