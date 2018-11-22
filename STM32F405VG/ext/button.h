@@ -26,13 +26,9 @@
 
 //BUTTON       PIN  Pull-up/Pull-down
 #define BTN_TABLE \
-X(BUTTON_1, PD6, GPIO_PuPd_UP) \
-X(BUTTON_2, PD7, GPIO_PuPd_UP) \
-X(JS_BTN_A, PD0, GPIO_PuPd_UP) \
-X(JS_BTN_B, PD1, GPIO_PuPd_UP) \
-X(JS_BTN_C, PD3, GPIO_PuPd_UP) \
-X(JS_BTN_D, PD4, GPIO_PuPd_UP) \
-X(JS_BTN_M, PD5, GPIO_PuPd_UP)
+X(SW_1, PB12, GPIO_PuPd_UP) \
+X(SW_2, PB13, GPIO_PuPd_UP) \
+X(SW_3, PB14, GPIO_PuPd_UP) 
 
 #define X(a, b, c) a, 
 typedef enum{
@@ -66,6 +62,8 @@ void btn_init(void);
 
 //To be called at a regular time interval. Button event will be triggered in this function
 void btn_update(void);
+
+bool btn_onclick(ButtonID button_id);
 
 //These functions are for registering listener for buttons
 void btn_reg_OnClickListener(ButtonID button_id, OnClickListener listener); //Called when the button is first pressed

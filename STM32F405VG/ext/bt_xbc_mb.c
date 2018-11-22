@@ -9,8 +9,8 @@ void bt_xbc_mb_init(){
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_CRC, ENABLE);
 	CRC_ResetDR();
 	
-	uart_init(BT_XBC_COM, 115200);
-	uart_interrupt_init(BT_XBC_COM, bt_xbc_receiver);
+//	uart_init(BT_XBC_COM, 115200);
+//	uart_interrupt_init(BT_XBC_COM, bt_xbc_receiver);
 }
 
 u32 bt_xbc_get_digital(){

@@ -26,5 +26,6 @@ for i=2:after_size-1
     
     
 end
+
 pk = median(max)-median(min);
-%plot((1:after_size),after);
+plot((1:after_size),after);

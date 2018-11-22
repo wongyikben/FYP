@@ -23,18 +23,5 @@ static const u16 min_dis[ADC_COUNT] = {200, 200};
 static const u16 max_dis[ADC_COUNT] = {5000, 5000};
 */
 
-/**
-	Get the calculated reading from the adc value.
-	@param device: The adc port to be read from
-	@return measured distance in mm
-*/
-u16 get_ls_cal_reading(AdcID device);
 
-/**
-	Get the uncalculated raw reading.
-	@param device: The adc port to be read from
-	@return adc value
-*/
-u16 get_ls_adc_reading(AdcID device);
- 
 #endif	

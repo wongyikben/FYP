@@ -1,111 +1,241 @@
 #include "adc.h"
+#include "../dac.h"
 
-static volatile uint16_t adc_reading[ADC_PORT_COUNT]; 
+#define sense_buffer 100
+volatile u16 ADC_buffer[sense_buffer] = {0};
+u16 peak_to_peak = 0;
+volatile u16 reading[1024] = {0};
+volatile bool flag = 0; // 0 not occupy ; 1 occupy
+volatile u32 count = 0;
+u8 curr_input=0;
 
 
-/** 
-* Initalize all adc ports, and start taking readings automatically
-*/
-void adc_init(){
-	ADC_CommonInitTypeDef ADC_CommonInitStruct;
+void DMA2_Stream0_IRQHandler(void) { //ADC DMA interrupt handler
+	 DMA_ClearITPendingBit(DMA2_Stream0, DMA_IT_TEIF0 | DMA_IT_DMEIF0 | DMA_IT_FEIF0 | DMA_IT_TCIF0 | DMA_IT_HTIF0);
+	 pk2pk();
+	 flag=0;
+}	
+
+
+
+void adc_gpio_init(void){
+	GPIO_InitTypeDef GPIO_InitStructure;
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+	GPIO_StructInit(&GPIO_InitStructure);
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0|GPIO_Pin_1|GPIO_Pin_2;
+	GPIO_InitStructure.GPIO_Speed = GPIO_High_Speed;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+}
+
+void TIM3_init(void){
+  TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
+        
+  RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
+	
+	TIM_DeInit(TIM3);
+     
+// TIM_TimeBaseStructInit(&TIM_TimeBaseStructure); 
+  TIM_TimeBaseStructure.TIM_Period =0;        //100 => 13k 20=>62.5k 30=>42.37k  10=>120k      9=>130
+  TIM_TimeBaseStructure.TIM_Prescaler = 0;                                                               
+  TIM_TimeBaseStructure.TIM_ClockDivision = 0x0;                                                   
+  TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;         
+  TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure);
+
+  TIM_Cmd(TIM3, ENABLE);	
+
+}
+
+void adc_dma_init(u8 input){
 	ADC_InitTypeDef ADC_InitStructure;
-	
-	//RCC init
-	for (uint8_t i=0; i<ADC_COUNT; i++){
-		RCC_APB2PeriphClockCmd(ADCs[i].rcc, ENABLE); 
-		RCC_AHB1PeriphClockCmd(ADCs[i].dma_rcc, ENABLE);  
-	}
-	
-	//GPIO init
-	for (uint8_t i=0; i<ADC_PORT_COUNT-2; i++){
-		gpio_rcc_init(ADCPorts[i].gpio);
-		gpio_init(ADCPorts[i].gpio, GPIO_Mode_AN, GPIO_High_Speed, GPIO_OType_OD, GPIO_PuPd_NOPULL);
-	}
-	
-	//ADC common init
-	ADC_CommonInitStruct.ADC_Mode = ADC_Mode_Independent;
-	ADC_CommonInitStruct.ADC_DMAAccessMode = ADC_DMAAccessMode_Disabled;
-	ADC_CommonInitStruct.ADC_Prescaler = ADC_Prescaler_Div2;
-	ADC_CommonInitStruct.ADC_TwoSamplingDelay = ADC_TwoSamplingDelay_5Cycles;
-	ADC_CommonInit(&ADC_CommonInitStruct);
-	
-	//ADC init
+	DMA_InitTypeDef DMA_InitStructure;
+
+	ADC_DeInit();
 	ADC_InitStructure.ADC_ContinuousConvMode = ENABLE;
-	ADC_InitStructure.ADC_ScanConvMode = ENABLE;
+	ADC_InitStructure.ADC_ScanConvMode = DISABLE;
 	ADC_InitStructure.ADC_Resolution = ADC_Resolution_12b;
 	ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T1_CC1;
 	ADC_InitStructure.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_None;
 	ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
 	
-	DMA_InitTypeDef DMA_InitStructure; 
+	// common init
 	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralToMemory;
 	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
 	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
 	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
 	DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
-	DMA_InitStructure.DMA_Mode = DMA_Mode_Circular;
+	DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;
 	DMA_InitStructure.DMA_Priority = DMA_Priority_High;
 	DMA_InitStructure.DMA_FIFOMode = DMA_FIFOMode_Disable;         
   DMA_InitStructure.DMA_FIFOThreshold = DMA_FIFOThreshold_HalfFull;
   DMA_InitStructure.DMA_MemoryBurst = DMA_MemoryBurst_Single;
   DMA_InitStructure.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;
+
+	ADC_RegularChannelConfig(ADC1, input , 1, ADC_SampleTime_3Cycles); // here to change the reading pin
 	
-	uint16_t index = 0;
-	for (uint8_t i=0; i<ADC_COUNT; i++){
-		uint8_t channel_count = 0;
+	
+	ADC_InitStructure.ADC_NbrOfConversion = 1;
+	ADC_Init(ADC1, &ADC_InitStructure);
+	// specific for adc initi
+	DMA_InitStructure.DMA_Channel =  DMA_Channel_0;
+	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t) &(ADC1)->DR;
+	DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t) &(ADC_buffer);
+	DMA_InitStructure.DMA_BufferSize = sense_buffer;
+	DMA_Init(DMA2_Stream0, &DMA_InitStructure); // DMA2 ADC1 S0C0  ADC2 S2C1 ADC3 S0C2
+	
+	
+
+	
+	DMA_ITConfig(DMA2_Stream0, DMA_IT_TC, ENABLE);
+	DMA_Cmd(DMA2_Stream0, ENABLE);
+	
+	ADC_DMARequestAfterLastTransferCmd(ADC1, ENABLE);
+	ADC_DMACmd(ADC1, ENABLE);
+	ADC_Cmd(ADC1, ENABLE);
+	ADC_SoftwareStartConv(ADC1);
+
+}
+
+
+
+
+
+void adc_init(void){
+	ADC_CommonInitTypeDef ADC_CommonInitStruct; 
+	NVIC_InitTypeDef NVIC_InitStructure;
+
+
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE); 
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA2, ENABLE); 
+	
+	adc_gpio_init();
 		
-		if (ADCs[i].adc == ADC1){
-			ADC_TempSensorVrefintCmd(ENABLE);
-			ADC_VBATCmd(ENABLE);
-			
-			//If Init ADC1, add two ADC channels -> Channel 16 for temperature, Channel 17 for Vref
-			channel_count += 2;
-			ADC_RegularChannelConfig(ADC1, ADC_Channel_16, 1, ADC_SampleTime_480Cycles);
-			ADC_RegularChannelConfig(ADC1, ADC_Channel_17, 2, ADC_SampleTime_480Cycles);
-		}
-		
-		for (uint8_t j=0; j<ADC_PORT_COUNT-2; j++){
-			if (ADCPorts[j].adc == ADCs[i].adc){
-				channel_count++;
-				//Channel init
-				ADC_RegularChannelConfig(ADCPorts[j].adc, ADCPorts[j].channel, channel_count, ADC_SampleTime_3Cycles);
+	
+	ADC_CommonInitStruct.ADC_Mode = ADC_Mode_Independent;
+	ADC_CommonInitStruct.ADC_DMAAccessMode = ADC_DMAAccessMode_1;
+	ADC_CommonInitStruct.ADC_Prescaler = ADC_Prescaler_Div2;
+	ADC_CommonInitStruct.ADC_TwoSamplingDelay = ADC_TwoSamplingDelay_5Cycles;
+	ADC_CommonInit(&ADC_CommonInitStruct);
+	
+	//ADC init
+	adc_dma_init(1);
+	
+	NVIC_InitStructure.NVIC_IRQChannel = DMA2_Stream0_IRQn;
+  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+  NVIC_Init(&NVIC_InitStructure);
+
+}
+
+
+
+bool adc_done(void){
+	return !flag;
+}
+
+
+void reset_dma_adc(u8 input){
+		if(flag){return;}
+		flag = 1;
+		curr_input=input;
+		DMA_ClearITPendingBit(DMA2_Stream0, DMA_IT_TEIF0 | DMA_IT_DMEIF0 | DMA_IT_FEIF0 | DMA_IT_TCIF0 | DMA_IT_HTIF0);
+		adc_dma_init(input);
+		return ;
+}
+
+
+
+
+s32 median(u8 n, s32* x) {
+    s32 temp;
+    u8 i, j;
+    // the following two loops sort the array x in ascending order
+    for(i=0; i<n-1; i++) {
+        for(j=i+1; j<n; j++) {
+            if(x[j] < x[i]) {
+                // swap elements
+                temp = x[i];
+                x[i] = x[j];
+                x[j] = temp;
+            }
+        }
+    }
+
+    if(n%2==0) {
+        // if there is an even number of elements, return mean of the two elements in the middle
+        return((x[n/2] + x[n/2 - 1]) >>1);
+    } else {
+        // else return the element in the middle
+        return x[n/2];
+    }
+}
+
+void pk2pk(void){
+
+	u16 zero_count = 0;
+	u16 freq = get_interval()-1;
+	
+	u8 peak_num[2]={0,0};
+	//s32 peak[2][12]={0,0};
+	u32 peak2[2] = {0};
+	ADC_buffer[2] = ADC_buffer[2]+ADC_buffer[3]+ADC_buffer[4]+ADC_buffer[5];
+	ADC_buffer[3] = ADC_buffer[3]+ADC_buffer[4]+ADC_buffer[5]+ADC_buffer[6];
+	for(u8 i=3;i<sense_buffer-4;i++){ 
+	 if(ADC_buffer[i+1]==0){
+			zero_count++;
+		 if(zero_count>10){
+				DMA_ClearITPendingBit(DMA2_Stream0, DMA_IT_TEIF0 | DMA_IT_DMEIF0 | DMA_IT_FEIF0 | DMA_IT_TCIF0 | DMA_IT_HTIF0);
+				adc_dma_init(curr_input);
+				return;
 			}
 		}
-		
-		ADC_InitStructure.ADC_NbrOfConversion = channel_count;
-		ADC_Init(ADCs[i].adc, &ADC_InitStructure);
-		
-		DMA_InitStructure.DMA_Channel = ADCs[i].channel;
-		DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t) &(ADCs[i].adc)->DR;
-		DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t) &(adc_reading[index]);
-		DMA_InitStructure.DMA_BufferSize = channel_count;
-		DMA_Init(ADCs[i].stream, &DMA_InitStructure);
-		DMA_Cmd(ADCs[i].stream, ENABLE);
-		
-		ADC_DMARequestAfterLastTransferCmd(ADCs[i].adc, ENABLE);
-		ADC_DMACmd(ADCs[i].adc, ENABLE);
-		ADC_Cmd(ADCs[i].adc, ENABLE);
-		ADC_SoftwareStartConv(ADCs[i].adc);
-		
-		index += channel_count;
+		ADC_buffer[i+1] = ADC_buffer[i+1]+ADC_buffer[i+2]+ADC_buffer[i+3]+ADC_buffer[i+4];
+		if(ADC_buffer[i-1]>ADC_buffer[i]&&ADC_buffer[i+1]>ADC_buffer[i]){ //min
+			peak_num[0]++;
+			peak2[0]+=ADC_buffer[i];
+			i+=freq;
+			ADC_buffer[i] = ADC_buffer[i]+ADC_buffer[i+1]+ADC_buffer[i+2]+ADC_buffer[i+3];
+			ADC_buffer[i+1] = ADC_buffer[i+1]+ADC_buffer[i+2]+ADC_buffer[i+3]+ADC_buffer[i+4];
+		}
+		else if(ADC_buffer[i-1]<ADC_buffer[i]&&ADC_buffer[i+1]<ADC_buffer[i]){ //max
+			peak_num[1]++;
+			peak2[1]+=ADC_buffer[i];
+			i+=freq;
+		  ADC_buffer[i] = ADC_buffer[i]+ADC_buffer[i+1]+ADC_buffer[i+2]+ADC_buffer[i+3];
+		 ADC_buffer[i+1] = ADC_buffer[i+1]+ADC_buffer[i+2]+ADC_buffer[i+3]+ADC_buffer[i+4];
+		}
 	}
+	
+	peak2[0]/=peak_num[0];
+	peak2[1]/=peak_num[1];
+	
+
+	peak_to_peak = (peak2[1]-peak2[0])>>2;
+
+//	reading[get_abs()]=(peak_to_peak);
 }
 
-/** Get the latest adc reading
-** @return Unsigned numerical reading representing voltage level
-*/
-uint16_t get_adc(AdcID id){
-	return adc_reading[id];
+u16 get_pk2pk(void){
+	return (peak_to_peak);
 }
 
 
-/** Get the temperature value
-* @return Temperature value (x10)
-*/
-int16_t get_mcu_temp(){
-	if (adc_reading[TEMPERATURE_ADC] == 0){
-		return 0;
-	}else{
-		return (adc_reading[TEMPERATURE_ADC]*3300/4096-TEMP_ADC_AT_25)*100/TEMP_SLOPE + 250;
+void uart_reading(void){
+	uart_tx(COM1,"y=[");
+	for(u16 i=0;i<1024;i++){
+		uart_tx(COM1,"%d,",reading[i]);
+		_delay_ms(10);
 	}
+	uart_tx(COM1,"];");
+
 }
+
+
+u32 get_count(void){
+	return count;
+}
+

@@ -6,6 +6,8 @@ static OnClickListener clickListeners[BTN_COUNT] = {0};
 static OnReleaseListener releaseListeners[BTN_COUNT] = {0};
 static HoldListenerStruct holdListeners[BTN_COUNT] = {0};
 
+static bool btn_state[BTN_COUNT]={0};
+
 //Init buttons
 void btn_init(){
 	for (uint8_t i=0; i<BTN_COUNT; i++){
@@ -26,6 +28,15 @@ bool btn_pressed(ButtonID button_id){
 
 //To be called at a regular time interval. Button event will be triggered in this function
 void btn_update(){
+	for (uint8_t i=0; i<BTN_COUNT; i++){
+	if (BUTTONS[i].PuPd == GPIO_PuPd_UP){
+		btn_state[i]=!gpio_read_input(BUTTONS[i].gpio);
+	}else{
+		btn_state[i]= gpio_read_input(BUTTONS[i].gpio);
+	}
+	
+	}
+	/*
 	for (uint8_t i=0; i<BTN_COUNT; i++){
 		if (btn_pressed((ButtonID)i)){
 			//If the button is pressed
@@ -52,9 +63,14 @@ void btn_update(){
 			}
 			pressedTime[i] = 0;
 		}
-	}
+	}*/
 }
-
+bool btn_onclick(ButtonID button_id){
+	if(btn_pressed(button_id)==1&&btn_state[button_id]==0){
+		return true;
+	}
+	return false;
+}
 //Called when the button is first pressed
 void btn_reg_OnClickListener(ButtonID button_id, OnClickListener listener){
 	clickListeners[button_id] = listener;

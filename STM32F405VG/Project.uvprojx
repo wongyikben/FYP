@@ -719,9 +719,24 @@
               <FilePath>.\core\spi_protocol.c</FilePath>
             </File>
             <File>
-              <FileName>ben.c</FileName>
+              <FileName>dac.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\dac.h</FilePath>
+            </File>
+            <File>
+              <FileName>dac.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\core\ben.c</FilePath>
+              <FilePath>.\dac.c</FilePath>
+            </File>
+            <File>
+              <FileName>absEnc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\absEnc.c</FilePath>
+            </File>
+            <File>
+              <FileName>pos_esti.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\core\pos_esti.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -1533,9 +1548,24 @@
               <FilePath>.\core\spi_protocol.c</FilePath>
             </File>
             <File>
-              <FileName>ben.c</FileName>
+              <FileName>dac.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\dac.h</FilePath>
+            </File>
+            <File>
+              <FileName>dac.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\core\ben.c</FilePath>
+              <FilePath>.\dac.c</FilePath>
+            </File>
+            <File>
+              <FileName>absEnc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\absEnc.c</FilePath>
+            </File>
+            <File>
+              <FileName>pos_esti.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\core\pos_esti.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -1938,7 +1968,7 @@
           </ArmAdsMisc>
           <Cads>
             <interw>1</interw>
-            <Optim>3</Optim>
+            <Optim>2</Optim>
             <oTime>1</oTime>
             <SplitLS>0</SplitLS>
             <OneElfS>1</OneElfS>
@@ -2348,9 +2378,24 @@
               <FilePath>.\core\spi_protocol.c</FilePath>
             </File>
             <File>
-              <FileName>ben.c</FileName>
+              <FileName>dac.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\dac.h</FilePath>
+            </File>
+            <File>
+              <FileName>dac.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\core\ben.c</FilePath>
+              <FilePath>.\dac.c</FilePath>
+            </File>
+            <File>
+              <FileName>absEnc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\absEnc.c</FilePath>
+            </File>
+            <File>
+              <FileName>pos_esti.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\core\pos_esti.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -3212,9 +3257,24 @@
               <FilePath>.\core\spi_protocol.c</FilePath>
             </File>
             <File>
-              <FileName>ben.c</FileName>
+              <FileName>dac.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\dac.h</FilePath>
+            </File>
+            <File>
+              <FileName>dac.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\core\ben.c</FilePath>
+              <FilePath>.\dac.c</FilePath>
+            </File>
+            <File>
+              <FileName>absEnc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\absEnc.c</FilePath>
+            </File>
+            <File>
+              <FileName>pos_esti.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\core\pos_esti.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -4026,9 +4086,24 @@
               <FilePath>.\core\spi_protocol.c</FilePath>
             </File>
             <File>
-              <FileName>ben.c</FileName>
+              <FileName>dac.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\dac.h</FilePath>
+            </File>
+            <File>
+              <FileName>dac.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\core\ben.c</FilePath>
+              <FilePath>.\dac.c</FilePath>
+            </File>
+            <File>
+              <FileName>absEnc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\absEnc.c</FilePath>
+            </File>
+            <File>
+              <FileName>pos_esti.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\core\pos_esti.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -4840,9 +4915,24 @@
               <FilePath>.\core\spi_protocol.c</FilePath>
             </File>
             <File>
-              <FileName>ben.c</FileName>
+              <FileName>dac.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\dac.h</FilePath>
+            </File>
+            <File>
+              <FileName>dac.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\core\ben.c</FilePath>
+              <FilePath>.\dac.c</FilePath>
+            </File>
+            <File>
+              <FileName>absEnc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\absEnc.c</FilePath>
+            </File>
+            <File>
+              <FileName>pos_esti.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\core\pos_esti.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -5654,9 +5744,24 @@
               <FilePath>.\core\spi_protocol.c</FilePath>
             </File>
             <File>
-              <FileName>ben.c</FileName>
+              <FileName>dac.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\dac.h</FilePath>
+            </File>
+            <File>
+              <FileName>dac.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\core\ben.c</FilePath>
+              <FilePath>.\dac.c</FilePath>
+            </File>
+            <File>
+              <FileName>absEnc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\absEnc.c</FilePath>
+            </File>
+            <File>
+              <FileName>pos_esti.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\core\pos_esti.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -6468,9 +6573,24 @@
               <FilePath>.\core\spi_protocol.c</FilePath>
             </File>
             <File>
-              <FileName>ben.c</FileName>
+              <FileName>dac.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\dac.h</FilePath>
+            </File>
+            <File>
+              <FileName>dac.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\core\ben.c</FilePath>
+              <FilePath>.\dac.c</FilePath>
+            </File>
+            <File>
+              <FileName>absEnc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\absEnc.c</FilePath>
+            </File>
+            <File>
+              <FileName>pos_esti.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\core\pos_esti.c</FilePath>
             </File>
           </Files>
         </Group>

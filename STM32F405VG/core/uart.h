@@ -40,11 +40,6 @@
 //COM   UART    TX   RX    RCC                 RCC line     AF              Interrupt 
 #define UART_TABLE \
 X(COM1, USART1, PA9, PA10, RCC_APB2Periph_USART1, 2, GPIO_AF_USART1, USART1_IRQn) \
-X(COM2, USART2, PA2, PA3, RCC_APB1Periph_USART2, 1, GPIO_AF_USART2, USART2_IRQn) \
-X(COM3, USART3, PB10, PB11, RCC_APB1Periph_USART3, 1, GPIO_AF_USART3, USART3_IRQn) \
-X(COM4, UART4, PA0, PA1, RCC_APB1Periph_UART4, 1, GPIO_AF_UART4, UART4_IRQn) \
-X(COM5, UART5, PC12, PD2, RCC_APB1Periph_UART5, 1, GPIO_AF_UART5, UART5_IRQn) \
-X(COM6, USART6, PG14, PG9, RCC_APB2Periph_USART6, 2, GPIO_AF_USART6, USART6_IRQn)
 
 #define X(a, b, c, d, e, f, g, h) a,
 typedef enum {
@@ -69,11 +64,7 @@ static const UARTStruct UARTPorts[] = {UART_TABLE};
 #define COM_COUNT (sizeof(UARTPorts)/sizeof(UARTStruct))
 
 #define UART1_TX_BUFFER_MAX 64
-#define UART2_TX_BUFFER_MAX 768
-#define UART3_TX_BUFFER_MAX 64
-#define UART4_TX_BUFFER_MAX 64
-#define UART5_TX_BUFFER_MAX 64
-#define UART6_TX_BUFFER_MAX 64
+
 typedef struct{
 	volatile uint16_t head;
 	volatile uint16_t tail;
@@ -161,5 +152,8 @@ uint16_t get_uart_queue_size(SerialPort COM);
 *	@return The received byte
 */
 uint8_t uart_rx_byte(SerialPort COM);
+
+void uart_binary(u16 input,u8 bit);
+
 
 #endif

@@ -1,20 +1,11 @@
 #include "uart.h"
 
 static uint8_t tx_buf_item_1[UART1_TX_BUFFER_MAX] = {0};
-static uint8_t tx_buf_item_2[UART2_TX_BUFFER_MAX] = {0};
-static uint8_t tx_buf_item_3[UART3_TX_BUFFER_MAX] = {0};
-static uint8_t tx_buf_item_4[UART4_TX_BUFFER_MAX] = {0};
-static uint8_t tx_buf_item_5[UART5_TX_BUFFER_MAX] = {0};
-static uint8_t tx_buf_item_6[UART6_TX_BUFFER_MAX] = {0};
+
 
 static UartQueue tx_queue[COM_COUNT] = {{0, 0, tx_buf_item_1}, 
-																				{0, 0, tx_buf_item_2},
-																				{0, 0, tx_buf_item_3},
-																				{0, 0, tx_buf_item_4},
-																				{0, 0, tx_buf_item_5},
-																				{0, 0, tx_buf_item_6}};
-static uint32_t tx_buf_max_size[COM_COUNT] = {UART1_TX_BUFFER_MAX, UART2_TX_BUFFER_MAX, UART3_TX_BUFFER_MAX,
-																				UART4_TX_BUFFER_MAX, UART5_TX_BUFFER_MAX, UART6_TX_BUFFER_MAX};
+																			};
+static uint32_t tx_buf_max_size[COM_COUNT] = {UART1_TX_BUFFER_MAX};
 																				
 static OnRxListener rxListeners[COM_COUNT] = {0};
 
@@ -221,98 +212,15 @@ void USART1_IRQHandler(void){
 }
 #undef COM_PORT
 
-#define COM_PORT COM2
-void USART2_IRQHandler(void){
-	if(USART_GetITStatus(UARTPorts[COM_PORT].uart, USART_IT_RXNE) == SET){
-		//Handle receive interrupt
-		if (rxListeners[COM_PORT] != 0){
-			(rxListeners[COM_PORT])(USART_ReceiveData(UARTPorts[COM_PORT].uart));
-		}
-		USART_ClearITPendingBit(UARTPorts[COM_PORT].uart, USART_IT_RXNE);
-		
-	}else if(USART_GetITStatus(UARTPorts[COM_PORT].uart, USART_IT_TC) == SET){
-		//Handle transmit interrupt
-		uart_tx_dequeue(COM_PORT);
-		USART_ClearITPendingBit(UARTPorts[COM_PORT].uart, USART_IT_TC);
-	}
-	UARTPorts[COM_PORT].uart->SR;
-	UARTPorts[COM_PORT].uart->DR;
-}
-#undef COM_PORT
 
-#define COM_PORT COM3
-void USART3_IRQHandler(void){
-	if(USART_GetITStatus(UARTPorts[COM_PORT].uart, USART_IT_RXNE) == SET){
-		//Handle receive interrupt
-		if (rxListeners[COM_PORT] != 0){
-			(rxListeners[COM_PORT])(USART_ReceiveData(UARTPorts[COM_PORT].uart));
-		}
-		USART_ClearITPendingBit(UARTPorts[COM_PORT].uart, USART_IT_RXNE);
-		
-	}else if(USART_GetITStatus(UARTPorts[COM_PORT].uart, USART_IT_TC) == SET){
-		//Handle transmit interrupt
-		uart_tx_dequeue(COM_PORT);
-		USART_ClearITPendingBit(UARTPorts[COM_PORT].uart, USART_IT_TC);
+void uart_binary(u16 input,u8 bit){ 
+	for(u8 i=0;i<bit;i++){
+			uart_tx(COM1,"%d",(input&(0x0200>>i))>>(bit-1-i));
 	}
-	UARTPorts[COM_PORT].uart->SR;
-	UARTPorts[COM_PORT].uart->DR;
-}
-#undef COM_PORT
+	uart_tx(COM1,"\n");
 
-#define COM_PORT COM4
-void UART4_IRQHandler(void){
-	if(USART_GetITStatus(UARTPorts[COM_PORT].uart, USART_IT_RXNE) == SET){
-		//Handle receive interrupt
-		if (rxListeners[COM_PORT] != 0){
-			(rxListeners[COM_PORT])(USART_ReceiveData(UARTPorts[COM_PORT].uart));
-		}
-		USART_ClearITPendingBit(UARTPorts[COM_PORT].uart, USART_IT_RXNE);
-		
-	}else if(USART_GetITStatus(UARTPorts[COM_PORT].uart, USART_IT_TC) == SET){
-		//Handle transmit interrupt
-		uart_tx_dequeue(COM_PORT);
-		USART_ClearITPendingBit(UARTPorts[COM_PORT].uart, USART_IT_TC);
-	}
-	UARTPorts[COM_PORT].uart->SR;
-	UARTPorts[COM_PORT].uart->DR;
-}
-#undef COM_PORT
 
-#define COM_PORT COM5
-void UART5_IRQHandler(void){
-	if(USART_GetITStatus(UARTPorts[COM_PORT].uart, USART_IT_RXNE) == SET){
-		//Handle receive interrupt
-		if (rxListeners[COM_PORT] != 0){
-			(rxListeners[COM_PORT])(USART_ReceiveData(UARTPorts[COM_PORT].uart));
-		}
-		USART_ClearITPendingBit(UARTPorts[COM_PORT].uart, USART_IT_RXNE);
-		
-	}else if(USART_GetITStatus(UARTPorts[COM_PORT].uart, USART_IT_TC) == SET){
-		//Handle transmit interrupt
-		uart_tx_dequeue(COM_PORT);
-		USART_ClearITPendingBit(UARTPorts[COM_PORT].uart, USART_IT_TC);
-	}
-	UARTPorts[COM_PORT].uart->SR;
-	UARTPorts[COM_PORT].uart->DR;
 }
-#undef COM_PORT
 
-#define COM_PORT COM6
-void USART6_IRQHandler(void){
-	if(USART_GetITStatus(UARTPorts[COM_PORT].uart, USART_IT_RXNE) == SET){
-		//Handle receive interrupt
-		if (rxListeners[COM_PORT] != 0){
-			(rxListeners[COM_PORT])(USART_ReceiveData(UARTPorts[COM_PORT].uart));
-		}
-		USART_ClearITPendingBit(UARTPorts[COM_PORT].uart, USART_IT_RXNE);
-		
-	}else if(USART_GetITStatus(UARTPorts[COM_PORT].uart, USART_IT_TC) == SET){
-		//Handle transmit interrupt
-		uart_tx_dequeue(COM_PORT);
-		USART_ClearITPendingBit(UARTPorts[COM_PORT].uart, USART_IT_TC);
-	}
-	UARTPorts[COM_PORT].uart->SR;
-	UARTPorts[COM_PORT].uart->DR;
-}
 #undef COM_PORT
 
