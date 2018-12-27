@@ -9,9 +9,21 @@
 
 s32 get_pos(void);
 
+s32 get_pos2(void);
+
 void pos_update(void);
 
+void pos_update2(void);
+
 void uart_bitch(void);
+
+void TIM5_init(void);
+
+void Rcal(s32* upper,s32* lower);
+
+void TIM5_IRQHandler(void);
+
+s16 get_vel(void);
 
 
 

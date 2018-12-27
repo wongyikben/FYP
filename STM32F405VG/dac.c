@@ -11,6 +11,10 @@ sin3[0],sin3[1],sin3[2],sin3[3],sin3[4],sin3[5],sin3[6]
 
 };
 
+u16 volt[7] = {384,640,896,1152,1408,1664,1920};
+
+u8 volt_index = 0;
+
 u16 frequency = 0;
 
 
@@ -57,6 +61,7 @@ void dac_init(u16 freq,u8 level){
 	//  calculation for period and voltage for timer and 
 	u16 period = 0;
 	if(level>6){level=6;}
+	volt_index = level;
 	if(freq<50){freq=50;}
 	if(freq>400){freq=400;}
 	
@@ -182,6 +187,10 @@ void FET_gnd(u16 input){
 	//GPIO_ToggleBits(GPIOA, GPIO_Pin_8);
 	//GPIO_ToggleBits(GPIOA, GPIO_Pin_11);
 	
+}
+
+u32 get_voltage(void){
+	return (u32)volt[volt_index]<<7;
 }
 
 u16 get_interval(void){

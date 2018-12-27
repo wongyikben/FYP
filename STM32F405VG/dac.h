@@ -30,6 +30,8 @@ void DAC_TIM4_Config(u16 period);
 
 void dac_init(u16 freq,u8 level);
 
+u32 get_voltage(void);
+
 
 void FET_gnd(u16 input) ;
 

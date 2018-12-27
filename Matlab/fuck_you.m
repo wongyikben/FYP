@@ -1,16 +1,16 @@
 function[error] = fuck_you(input)
-result = zeros(1,1024);
-ideal = zeros(1,1024);
-error = zeros(1,1024);
+result = zeros(1,72);
+ideal = zeros(1,72);
+error = zeros(1,72);
 
 err = zeros(1,73);
 
 %data = zeros(100,1024);
 
 %for k=1:100
-for i= 1:1024
+for i= 1:72
    result(i)=idk(input,i); 
-   ideal(i)=mod(i,73)+1;
+   ideal(i)=i-1;
    error(i) = ideal(i)-result(i);
    if error(i)>73/2
     error(i) = (73-error(i));
@@ -24,9 +24,12 @@ end
 
 %lazy([result;ideal])
 %mean(abs(error))
-plot(1:1024,result);
+figure
+plot(1:72,result);
+
 hold on
-plot(1:1024,ideal);
+plot(1:72,ideal);
+figure
 %xlim([363 582])
 
 %figure
@@ -54,8 +57,9 @@ plot(1:1024,ideal);
 %k = mean(data);
 %plot(1:length(k),k)
 %error = mean(data);
-
+plot(error)
 mean(abs(error))
+return
 for i=0:1023
     err(mod(i,73)+1)=err(mod(i,73)+1)+error(i+1);
 end
@@ -70,7 +74,7 @@ err = err/14;
 %    end
 %end
 figure
-plot((1:73)*2*pi/73-pi,err*2*pi/73);
+%plot((1:73)*2*pi/73-pi,err*2*pi/73);
 hold on
 a = 'corr1 = [';
 for i=1:73

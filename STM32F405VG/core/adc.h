@@ -23,11 +23,11 @@ void adc_init(void);
 
 void reset_dma_adc(u8 input);
 
-void pk2pk(void);
+void pk2pk(u8 input);
 
 void uart_reading(void);
 
-u16 get_pk2pk(void);
+u16 get_pk2pk(u8 input);
 
 u32 get_count(void);
 
