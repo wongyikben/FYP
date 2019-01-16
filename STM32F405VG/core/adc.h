@@ -27,7 +27,11 @@ void pk2pk(u8 input);
 
 void uart_reading(void);
 
-u16 get_pk2pk(u8 input);
+s16 get_pk2pk(u8 input);
+
+s16 get_bemf(u8 input);
+
+void reset_dma_adc_bemf(u8 input);
 
 u32 get_count(void);
 

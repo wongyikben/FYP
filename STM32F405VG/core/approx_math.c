@@ -210,3 +210,24 @@ u32 Sqrt(int32_t v)
 }
 
 
+
+u32 inv_sqrt(int32_t v)
+{
+
+	union {
+		float f;
+		uint32_t i;
+	} conv;
+	
+	float x2;
+	const float threehalfs = 1.5F;
+	float number = (float)v;
+	x2 = number * 0.5F;
+	conv.f  = number;
+	conv.i  = 0x5f3759df - ( conv.i >> 1 );
+	conv.f  = conv.f * ( threehalfs - ( x2 * conv.f * conv.f ) );
+	return (u32)(conv.f*65536);
+
+}
+
+

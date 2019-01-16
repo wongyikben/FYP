@@ -35,6 +35,8 @@ u32 get_voltage(void);
 
 void FET_gnd(u16 input) ;
 
+u16 get_freq(void);
+
 u16 get_interval(void);
 
 

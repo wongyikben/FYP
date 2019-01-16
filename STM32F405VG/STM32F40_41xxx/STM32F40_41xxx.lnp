@@ -63,6 +63,7 @@
 "stm32f40_41xxx\dac.o"
 "stm32f40_41xxx\absenc.o"
 "stm32f40_41xxx\pos_esti.o"
+"stm32f40_41xxx\vec.o"
 "stm32f40_41xxx\button.o"
 "stm32f40_41xxx\buzzer.o"
 "stm32f40_41xxx\can_motor.o"

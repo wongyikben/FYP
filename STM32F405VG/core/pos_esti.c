@@ -1,6 +1,10 @@
 #include "../core/pos_esti.h"
 #include "macro_math.h"
 #include "../core/vec.h"
+#include "approx_math.h"
+
+#define DELAY 7
+#define BEMF_DELAY 1
 
 s32 position = 0;
 s32 last_position = 0;
@@ -12,21 +16,39 @@ s32 enc = 0;
 s32 last_enc = 0;
 s32 enc_vel = 0;
 
+
+#define VEL_BUFFER 20
+
+s16 vel_buffer[VEL_BUFFER];
+s16 mean_vel = 0;
+u32 vel_count = 0;
+
 u8 ratio = 80;
 
 u8 true_count = 0;
 s16 last_error = 0;
 s32 x[8] = {0};
+
+
+
 s32 lastx[6]={0};
 s32 result[3] = {0};
 u8 k = 0;
 s32 ksin = 0;
 s32 kcos = 0;
-u16 offset = 0;
+s32 offset = 0;
 u32 max[6]={0};
 u32 min[6]={0xffff,0xffff,0xffff,0xffff,0xffff,0xffff};
 
+
+vec3 x_vec[2];
+vec3 read;
+
 s32 save_x[6][72]={0};
+
+s32 WTF[3][1024] = {0};
+
+
 
 u16 x_offset[6]={0};
 
@@ -34,7 +56,14 @@ u16 init_pos = 0;
 
 bool method_flag = false;
 
+#define SENSE_VEL 5
+bool sense_method = true;
+u16 sense_count = 0;
 
+
+s32 output[3];
+mat3 J[2];
+vec3 x_temp[2];
 
 s32 bitch [1024] = {0};
 s32 bitch1[3][1024] = {0};
@@ -48,10 +77,446 @@ s16 vel = 0;
 s16 error = 0;
 
 
-
 s32 get_pos(void){
+	if(mean_vel>=0){
+  	position+=(mean_vel)-5;
+	}
+	if(mean_vel<0){
+		position+=mean_vel-3;
+	}
+	position%=73;
+	if(position<0){position+=72;};
 	return position;
+
 }
+
+
+
+
+
+void v_funct(vec3 input){
+
+s32 v = get_voltage();
+
+s32 a = input.n[0];
+s32 b = input.n[1];	
+s32 c = input.n[2];		
+
+s32 R = 12412;
+
+output[0] = ((v*b)*inv_sqrt(R*R+(a+b)*(a+b)))>>9;
+output[1] = ((v*c)*inv_sqrt(R*R+(c+b)*(c+b)))>>9;
+output[2] = ((v*a)*inv_sqrt(R*R+(a+c)*(a+c)))>>9;
+
+}
+
+
+void induc_sense(void){
+
+	DAC_enable(DAC_A);
+	FET_gnd(FET_B);
+	_delay_us(DELAY);
+	reset_dma_adc(SENSE_C);
+	while(!adc_done()){}
+	DAC_enable(DAC_B);
+	FET_gnd(FET_C);
+	_delay_us(DELAY);
+	reset_dma_adc(SENSE_A);
+	read.n[0] = (s32)(get_pk2pk(SENSE_C))<<6;
+	
+
+	while(!adc_done()){}
+	DAC_enable(DAC_C);
+	FET_gnd(FET_A);
+	_delay_us(DELAY);	
+	reset_dma_adc(SENSE_B);
+	read.n[1] = (s32)(get_pk2pk(SENSE_A))<<6;
+		
+
+	
+	while(!adc_done()){}
+	read.n[2] = (s32)(get_pk2pk(SENSE_B))<<6;			
+	DAC_enable(DAC_DISABLE);
+	FET_gnd(NO_FET);
+
+
+}
+
+
+#define delta 	1
+
+
+
+void N_method(){
+	
+	vec3 offset;
+	
+	
+	vec3 temp;
+	
+	v_funct(x_vec[0]);
+	
+	temp.n[0]=output[0];
+	temp.n[1]=output[1];
+	temp.n[2]=output[2];
+	
+	x_vec[0].n[0] = x_vec[0].n[0]+1;
+	v_funct(x_vec[0]);
+	J[0].n[0]=output[0]-temp.n[0]; // I didn't /the delta because it is 1 
+	J[0].n[3]=output[1]-temp.n[1];
+	J[0].n[6]=output[2]-temp.n[2];
+	
+	x_vec[0].n[0] = x_vec[0].n[0]-1;
+	x_vec[0].n[1] = x_vec[0].n[1]+1;
+	v_funct(x_vec[0]);
+	J[0].n[1]=output[0]-temp.n[0]; 
+	J[0].n[4]=output[1]-temp.n[1];
+	J[0].n[7]=output[2]-temp.n[2];
+	
+	x_vec[0].n[1] = x_vec[0].n[1]-1;
+	x_vec[0].n[2] = x_vec[0].n[2]+1;
+	v_funct(x_vec[0]);
+	J[0].n[2]=output[0]-temp.n[0]; 
+	J[0].n[5]=output[1]-temp.n[1];
+	J[0].n[8]=output[2]-temp.n[2];
+	
+	x_vec[0].n[2] = x_vec[0].n[2]-1;
+	J[0]=inverse(J[0]);
+	
+
+	offset = mat_vec_prod(J[0],vec_sub(temp,read));
+	sca_vec_div(128,&offset);
+	x_vec[0]=vec_sub(x_vec[0],offset);
+}
+
+void mat_init(void){
+	vec3 temp;
+
+	
+	x_vec[0].n[0]=1;
+	x_vec[0].n[1]=1;
+	x_vec[0].n[2]=1;
+	
+	induc_sense();
+	
+	for (u8 i=0;i<10;i++){	
+		N_method();
+	}
+	
+	
+}
+
+
+s32 get_k(void){
+	s32 k=0;
+	s32 tri_x[3]={0};
+	u16 temp = get_abs();
+	DAC_enable(DAC_A);
+	FET_gnd(FET_B);
+	reset_dma_adc(SENSE_C);
+	while(!adc_done()){}
+	DAC_enable(DAC_A);
+	FET_gnd(FET_C);
+	reset_dma_adc(SENSE_B);	
+	x[0] = (s32)(get_pk2pk(SENSE_C));
+		
+	if(true_count){
+	x[0]=(x[0]*ratio+lastx[0]*(100-ratio))/100;	}
+	lastx[0]=x[0];		
+		
+		
+	while(!adc_done()){}
+	DAC_enable(DAC_B);
+	FET_gnd(FET_A);
+	reset_dma_adc(SENSE_C);	
+	x[1] = (s32)(get_pk2pk(SENSE_B));
+	if(true_count){
+	x[1]=(x[1]*ratio+lastx[1]*(100-ratio))/100;	}
+	lastx[1]=x[1];		
+		
+
+	while(!adc_done()){}
+	DAC_enable(DAC_B);
+	FET_gnd(FET_C);
+	reset_dma_adc(SENSE_A);
+	x[3] =(s32)(get_pk2pk(SENSE_C));
+	if(true_count){	
+	x[3]=(x[3]*ratio+lastx[3]*(100-ratio))/100;	}
+	lastx[3]=x[3];		
+			
+		
+
+	while(!adc_done()){}
+	DAC_enable(DAC_C);
+	FET_gnd(FET_A);
+	reset_dma_adc(SENSE_B);
+	x[2] = (s32)(get_pk2pk(SENSE_A));
+	if(true_count){
+	x[2]=(x[2]*ratio+lastx[2]*(100-ratio))/100;	}
+	lastx[2]=x[2];	
+	
+	
+	while(!adc_done()){}
+	DAC_enable(DAC_C);
+	FET_gnd(FET_B);
+	reset_dma_adc(SENSE_A);	
+	x[4] = (s32)(get_pk2pk(SENSE_B));	
+	if(true_count){
+	x[4]=(x[4]*ratio+lastx[4]*(100-ratio))/100;	}
+	lastx[4]=x[4];		
+
+	while(!adc_done()){}
+	x[5] = (s32)(get_pk2pk(SENSE_A));
+	if(true_count){
+	x[5]=(x[5]*ratio+lastx[5]*(100-ratio))/100;	}
+	lastx[5]=x[5];	
+		
+	DAC_enable(DAC_DISABLE);
+	FET_gnd(NO_FET);
+
+	
+	x_vec[0].n[0]=1;
+	x_vec[0].n[1]=1;
+	x_vec[0].n[2]=1;
+	
+	//N_method(0);
+
+	
+  x_vec[1].n[0]=1;
+	x_vec[1].n[1]=1;
+	x_vec[1].n[2]=1;
+	
+	//N_method(1);
+
+	// Position estimation code 
+	
+	tri_x[0] = (x_vec[0].n[0]+x_vec[1].n[0])<<7;
+	tri_x[1] = (x_vec[0].n[1]+x_vec[1].n[1])<<7;
+	tri_x[2] = (x_vec[0].n[2]+x_vec[1].n[2])<<7;
+	
+	tri_x[0] = x_vec[0].n[0];
+	tri_x[1] = x_vec[0].n[1];
+	tri_x[2] = x_vec[0].n[2];
+
+
+	offset = (tri_x[0]+tri_x[1]+tri_x[2])/3;
+
+	tri_x[0]-=offset;
+	tri_x[1]-=offset;
+	tri_x[2]-=offset;
+
+
+	ksin = (tri_x[0]-tri_x[1]-tri_x[2])>>8;
+	kcos = (tri_x[1]-tri_x[2])/222;
+	
+	k = Sqrt(ksin*ksin+kcos*kcos);
+	return k;
+
+}
+
+
+
+
+void pos_update_bemf(void){
+
+	u16 temp = get_abs();
+	// 1 0 2
+	FET_gnd(FET_B);
+	_delay_us(BEMF_DELAY);
+	reset_dma_adc_bemf(SENSE_C);
+	while(!adc_done()){}
+	FET_gnd(FET_C);
+	_delay_us(BEMF_DELAY);
+	reset_dma_adc_bemf(SENSE_A);
+	x[1] = (s32)(get_bemf(SENSE_C));
+	WTF[1][temp]=x[1];
+	x[1]<<=7;
+
+	while(!adc_done()){}
+	FET_gnd(FET_A);
+	_delay_us(BEMF_DELAY);	
+	reset_dma_adc_bemf(SENSE_B);
+	x[2] = (s32)(get_bemf(SENSE_A));
+	WTF[2][temp]=x[2];
+	x[2]<<=7;
+		
+		
+
+	while(!adc_done()){}
+	x[0] = (s32)(get_bemf(SENSE_B));
+	WTF[0][temp]=x[0];	
+  x[0]<<=7;		
+	DAC_enable(DAC_DISABLE);
+	FET_gnd(NO_FET);
+		
+		
+	
+
+	ksin = (x[0]-x[1]-x[2])>>9;
+	kcos = (x[1]-x[2])/443;
+
+		
+		
+	position = (-app_atan2(ksin,kcos)-9000);
+	if(mean_vel>0){
+		position+=9000;
+	}else{
+		position-=9000;
+	}	
+	
+	position/=250;
+	
+	if(position<0){
+		position+=144;
+	}
+	position%=144;
+
+		
+	if(ABS(position*true_count-last_pos)>72){
+		if(position*true_count-last_pos<0){
+			enc+= position*true_count-last_pos+144;
+		}else{
+			enc+= position*true_count-last_pos-144;
+		}
+	
+	}else{
+			enc += position*true_count-last_pos;
+	}
+	last_pos = position;
+	
+	
+	// velocity 
+	enc_vel = enc-last_enc;
+	last_enc=enc;
+
+	
+	//position+=enc_vel;
+
+	
+	// error calculation 
+	position = (position*146/144);
+	
+	vel_buffer[vel_count++%VEL_BUFFER] = enc_vel;
+	mean_vel = 0;
+	for (u8 i=0;i<VEL_BUFFER;i++){
+		mean_vel +=vel_buffer[i];
+	}
+	mean_vel/=VEL_BUFFER;
+
+	true_count=1;
+
+}
+
+
+void pos_update4(void){
+		
+	s32 tri_x[3]={0};
+	
+	induc_sense();
+
+	u16 temp = get_abs();
+		
+	
+	N_method();
+	N_method();
+
+/*	vec3 offse;
+	
+	
+	v_funct(x_vec[0]);
+	offse.n[0]=output[0];
+	offse.n[1]=output[1];
+	offse.n[2]=output[2];
+	uart_tx(COM1,"%d\n",vec_length(vec_sub(offse,read))>>10);*/
+
+	// Position estimation code 
+	
+	
+	tri_x[0] = x_vec[0].n[0]<<7;
+	tri_x[1] = x_vec[0].n[1]<<7;
+	tri_x[2] = x_vec[0].n[2]<<7;
+
+
+	offset = (tri_x[0]+tri_x[1]+tri_x[2])/3;
+
+	tri_x[0]-=offset;
+	tri_x[1]-=offset;
+	tri_x[2]-=offset;
+
+
+	ksin = (tri_x[0]-tri_x[1]-tri_x[2])>>9;
+	kcos = (tri_x[1]-tri_x[2])/443;
+
+	position = (app_atan2(ksin,kcos)+9000)/500;
+	position%=72;
+	
+	// mean filter 
+/*		if(ABS(position-last_position)>36){
+		if(position>last_position){
+			last_position+=71;
+			curr_position = ((position+last_position)>>1)%72;
+			
+			last_position = position;
+		}else{
+			position+=71;
+			curr_position = ((position+last_position)>>1)%72;
+			
+			last_position = position-71;
+		}
+	
+	}else{
+		curr_position = ((position+last_position)>>1)%72;
+		
+		last_position = position;
+	}
+	position = curr_position;*/
+	if(position<0){position+=71;}
+	position%=72;
+	
+	
+
+	
+	// translate to encoder 
+	
+	if(ABS(position*true_count-last_pos)>36){
+		if(position*true_count-last_pos<0){
+			enc+= position*true_count-last_pos+72;
+		}else{
+			enc+= position*true_count-last_pos-72;
+		}
+	
+	}else{
+			enc += position*true_count-last_pos;
+	}
+	last_pos = position;
+	
+	
+	// velocity 
+	enc_vel = enc-last_enc;
+	last_enc=enc;
+
+	
+
+	// error calculation 
+	position = (position*73/72);
+
+	
+	vel_buffer[vel_count++%VEL_BUFFER] = enc_vel;
+	mean_vel = 0;
+	for (u8 i=0;i<VEL_BUFFER;i++){
+		mean_vel +=vel_buffer[i];
+	}
+	mean_vel/=VEL_BUFFER;
+
+	
+	
+	
+	
+	true_count=1;
+}
+
+
+
 
 void pos_update2(void){
 	
@@ -819,7 +1284,9 @@ void pos_update(void){
 void uart_bitch(void){
 	uart_tx(COM1,"y=[");		
 	for(u16 i=0;i<1024;i++){
-	uart_tx(COM1,"%d,",bitch[i]);
+		uart_tx(COM1,"%d,",WTF[0][i]);
+		uart_tx(COM1,"%d,",WTF[1][i]);
+		uart_tx(COM1,"%d;",WTF[2][i]);
 //	uart_tx(COM1,"%d,",bitch1[1][i]);
 //	uart_tx(COM1,"%d;",bitch1[2][i]);
 		_delay_ms(10);
@@ -892,8 +1359,51 @@ void TIM5_IRQHandler(void){
 	
 }
 
-s16 get_vel(void){
-	return vel;
+s32 get_vel(void){
+	return mean_vel;
 }
+
+
+s32 get_enc(void){
+	return enc;
+}
+
+
+
+
+
+void position_update(void){
+	
+	if(sense_method){
+		// high frequency injection
+	
+		pos_update4();
+	
+	
+	}else{
+		// BEMF
+		pos_update_bemf();
+	
+	}
+
+	if(sense_count++>100){
+		if(ABS(mean_vel)<SENSE_VEL&&!sense_method){
+				sense_count = 0;
+				sense_method = true;
+		}
+		if(ABS(mean_vel)>=SENSE_VEL&&sense_method){
+				sense_count = 0;
+				sense_method = false;
+		}
+	}
+}
+
+bool get_method(void){
+	return sense_method;
+}
+
+
+
+
 
 

@@ -738,6 +738,11 @@
               <FileType>1</FileType>
               <FilePath>.\core\pos_esti.c</FilePath>
             </File>
+            <File>
+              <FileName>vec.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\core\vec.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -1566,6 +1571,11 @@
               <FileName>pos_esti.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\core\pos_esti.c</FilePath>
+            </File>
+            <File>
+              <FileName>vec.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\core\vec.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -2396,6 +2406,11 @@
               <FileName>pos_esti.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\core\pos_esti.c</FilePath>
+            </File>
+            <File>
+              <FileName>vec.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\core\vec.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -3276,6 +3291,11 @@
               <FileType>1</FileType>
               <FilePath>.\core\pos_esti.c</FilePath>
             </File>
+            <File>
+              <FileName>vec.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\core\vec.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -4104,6 +4124,11 @@
               <FileName>pos_esti.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\core\pos_esti.c</FilePath>
+            </File>
+            <File>
+              <FileName>vec.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\core\vec.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -4934,6 +4959,11 @@
               <FileType>1</FileType>
               <FilePath>.\core\pos_esti.c</FilePath>
             </File>
+            <File>
+              <FileName>vec.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\core\vec.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -5763,6 +5793,11 @@
               <FileType>1</FileType>
               <FilePath>.\core\pos_esti.c</FilePath>
             </File>
+            <File>
+              <FileName>vec.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\core\vec.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -6591,6 +6626,11 @@
               <FileName>pos_esti.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\core\pos_esti.c</FilePath>
+            </File>
+            <File>
+              <FileName>vec.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\core\vec.c</FilePath>
             </File>
           </Files>
         </Group>

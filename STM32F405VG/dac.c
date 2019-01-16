@@ -189,10 +189,14 @@ void FET_gnd(u16 input){
 	
 }
 
+u16 get_freq(void){
+	return frequency;
+}
+
 u32 get_voltage(void){
-	return (u32)volt[volt_index]<<7;
+	return (u32)volt[volt_index];
 }
 
 u16 get_interval(void){
-	return 600/frequency;
+	return 818/frequency;
 }

@@ -1,4 +1,5 @@
 #include "../core/vec.h"
+#include "approx_math.h"
 #include "macro_math.h"
 
 s32 det(s32 a , s32 b, s32 c,s32 d){
@@ -135,7 +136,7 @@ mat3 inverse(const mat3 a){ // multipled by 128
 		result.n[6] = det(a.n[1], a.n[2], a.n[4], a.n[5]);
 		result.n[7] =-det(a.n[0], a.n[2], a.n[3], a.n[5]);
 		result.n[8] = det(a.n[0], a.n[1], a.n[3], a.n[4]);
-		sca_mat_prod(4096,&result);
+		sca_mat_prod(128,&result);
 		sca_mat_div(detA,&result);
 		result = transpose(result);
 		return result;

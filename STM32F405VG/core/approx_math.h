@@ -57,4 +57,6 @@ int16_t int_arc_tan2(int32_t y, int32_t x);
   */
 u32 Sqrt(int32_t v);
 
+u32 inv_sqrt(int32_t v);
+
 #endif		/*  __APPROX_MATH_H */

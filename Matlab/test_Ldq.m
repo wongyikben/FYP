@@ -1,13 +1,17 @@
 function[y] = test_Ldq(input)
-x = zeros(6,72);
+x = zeros(4,72);
 for i=1:72
-    x(1:6,i)=shit_solver(input(1:6,i));
+    if i == 1
+       x(1:4,i)=shit_solver(input(1:6,i),[2157 2368 2687]);
+       continue 
+    end
+    x(1:4,i)=shit_solver(input(1:6,i),x(1:3,i-1)');
 
 end
 
-y(1,1:72) = x(1,1:72) + x(4,1:72);
-y(2,1:72) = x(2,1:72) + x(5,1:72);
-y(3,1:72) = x(3,1:72) + x(6,1:72);
+y(1,1:72) = x(1,1:72);% + x(4,1:72);
+y(2,1:72) = x(2,1:72) ;%+ x(5,1:72);
+y(3,1:72) = x(3,1:72) ;%+ x(6,1:72);
 
 % single_nice(x(1,1:72))
 % single_nice(x(2,1:72))
@@ -23,7 +27,9 @@ y(3,1:72) = x(3,1:72) + x(6,1:72);
 figure
 plot(1:72,y);
 figure
-plot(1:72,x);
+plot(1:72,x(4,1:72));
+%figure
+%plot(1:72,x);
 return 
 
 

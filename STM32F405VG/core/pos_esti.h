@@ -11,23 +11,41 @@ s32 get_pos(void);
 
 s32 get_pos2(void);
 
+
+
+
 void pos_update(void);
 
 void pos_update2(void);
 
+void pos_update3(void);
+
+void pos_update4(void);
+
+void pos_update_bemf(void);
+
 void uart_bitch(void);
+
+
+
 
 void TIM5_init(void);
 
-void Rcal(s32* upper,s32* lower);
-
 void TIM5_IRQHandler(void);
 
-s16 get_vel(void);
+void mat_init(void);
 
 
 
 
+s32 get_vel(void);
 
+s32 get_enc(void);
+
+s32 get_k(void);
+// Final version
+void position_update(void);
+
+bool get_method(void);
 #endif
 

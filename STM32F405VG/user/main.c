@@ -1,6 +1,8 @@
 #include "main.h"
 
-
+#define DELAY 10
+#define TEST_ALGO position_update();
+//pos_update_bemf();
 u32 last_ticks = 0;
 u32 curr_ticks = 0;
 
@@ -32,31 +34,28 @@ int main(void) {
 	
 	_delay_ms(100);
 	//u16 last = 0;
-	u16 count = 0;
-	u16 count1 = 0;
-	u16 now = 0;
-		
+	bool now = 0;
+	mat_init();	
 	//DAC_enable(DAC_A);
 	//FET_gnd(FET_B);
-	//DAC_enable(DAC_A);
-	//FET_gnd(FET_B);
+	DAC_enable(DAC_A);
+	FET_gnd(FET_B);
 	//while(1);
-//	uart_tx(COM1,"y=[");
+	//uart_tx(COM1,"y=[");
 
 	while(1){	
-		curr_ticks = get_ticks();
-		
-		/*reset_dma_adc(SENSE_C);
-	  while(!adc_done()){}
-		uart_reading();
-		while(1){}
 		
 		curr_ticks = get_ticks();
 	
 
-		for(u32 i=0;i<1000;i++){
-			//pos_sense();
-		//	pos_update();
+
+
+		
+		
+		
+	/*	for(u32 i=0;i<1000;i++){
+			//inv_sqrt(1);
+			TEST_ALGO
 			//reset_dma_adc(SENSE_C);
 			//while(!adc_done()){}
 
@@ -66,27 +65,60 @@ int main(void) {
 		
 			
 			
-		if(curr_ticks>1){ // !!!! ESSENTIAL CODE !!!!  
-	    
+		if(curr_ticks>10000){ // !!!! ESSENTIAL CODE !!!!  
+	   // uart_tx(COM1,"];");
+			//while(1){}
 			//reset_dma_adc(SENSE_B);
 		}
 		//_delay_us(1);
 		if(last_ticks!=curr_ticks){
-			pos_update2();
+/*	FET_gnd(FET_B);
+	//DAC_enable(DAC_A);
+	//_delay_us(DELAY);
+	reset_dma_adc(SENSE_C);
+	while(!adc_done()){}
+	//DAC_enable(DAC_B);
+	FET_gnd(FET_C);
+	//_delay_us(DELAY);
+	reset_dma_adc(SENSE_A);
+	
+	while(!adc_done()){}
+	//DAC_enable(DAC_C);
+	FET_gnd(FET_A);
+	//delay_us(DELAY);		
+	reset_dma_adc(SENSE_B);
+
+	while(!adc_done()){}		
+	DAC_enable(DAC_DISABLE);
+	FET_gnd(NO_FET);*/
+			
+			TEST_ALGO
+			
+		//	uart_tx(COM1,"%d\n",get_vel());
 		//	uart_tx(COM1,"%d,%d;",get_pos(),(get_abs()%73));
 			last_ticks = curr_ticks;
+			
+			if(now!=get_method()){
+				now=get_method();
+				if(now){
+				uart_tx(COM1,"HFIM");}
+				else{
+				uart_tx(COM1,"BEMF");
+				}
+			
+			}
+			
+			
 			if(curr_ticks%10==1){
-
-//				reset_dma_adc(SENSE_C);
-				//bitch[get_abs()]=get_pk2pk();					
-
+					
+				//uart_tx(COM1,"%d\n",get_abs());
 				
 				if(btn_onclick(SW_2)){
-
-					uart_bitch();
+					record();
+					//uart_bitch();
 				}
 				if(btn_onclick(SW_3)){
-
+					uart_bitch();	
 				}
 				
 				
@@ -94,94 +126,41 @@ int main(void) {
 			}
 			if(curr_ticks%10==3){
 
-				//uart_tx(COM1,"%d,",get_pos());//get_pk2pk(SENSE_C));
-				 //uart_tx(COM1,"%d\n",get_abs());
-				//uart_tx(COM1,"%d %d %d\n",get_pk2pk(),get_count(),curr_ticks);
+
 			}
 			if(curr_ticks%1000==50){
 				led_blink(LED_1);
-				//uart_tx(COM1,"%d %d %d\n",get_pk2pk(),get_count(),curr_ticks);
 			}
 		}
 	}
 
-		/*if(flag){
-		for(u16 j=2;j<sense_buffer;j++){
-		 uart_tx(COM1,"%d,",on9ADC[j]);
-			_delay_ms(10);
-		}
-		uart_tx(COM1,"\n");
-		uart_tx(COM1,"%d;",pk2pk());
-		flag = 0;
-		}*/
-		/*if(last!=get_abs()){
-			//uart_tx(COM1,"%d,%d;\n",gray2bin(~GPIOE->IDR&0x03FF),pk2pk());
-			
-			last = get_abs();
-			//uart_tx(COM1,"%d\n",get_abs());
-			uart_tx(COM1,"%d ",pk2pk());
-			//uart_tx(COM1,"%d\n",get_ticks());
-			
-			//uart_binary((~(GPIOE->IDR))&0x3FF,10);
-		}*/
-		
 
-	//if(btn_pressed(BUTTON_1)){
-		/*for(u16 j=2;j<sense_buffer;j++){
-		 uart_tx(COM1,"%d,",on9ADC[j]);
-			_delay_ms(10);
-		}
-		uart_tx(COM1,";%d,",pk2pk());
-			reset_dma_adc();*/
-		//for(u16 i=0;i<1024;i++){
-		//	if(pk_map[i]==0){
-		//		uart_tx(COM1,"%d,",i);
-		//		_delay_ms(10);
-		//	}
-		//}
-		
-	//}	
-	//if(btn_pressed(BUTTON_2)){
-			//uart_binary(GPIOE->IDR,10);
-		  //uart_binary(gray2bin(GPIOE->IDR&0x03FF),10);
-		//	for(u16 i=0;i<1024;i++){
-		//		uart_tx(COM1,"%d,",pk_map[i]);
-		//		_delay_ms(5);
-		//	}
-		//	uart_tx(COM1,";");
-			//_delay_ms(400);
-//	}	
-//	}	
-	
-	/*u16 i=100;
-	while(1){
-			for(u8 j=0;j<7;j++){
-				dac_init(i,j);
-				_delay_ms(2000);
-			}
-			i+=10;
-	}*/
-	
 
 }
 
 
 void record(void){
 		uart_tx(COM1,"y=[");
-		for(u16 i=0;i<2000;){
+		for(u16 i=0;i<500;){
 			curr_ticks = get_ticks();
 			if(curr_ticks!=last_ticks){
 				last_ticks = curr_ticks;
 				time_t[i]=curr_ticks;
-	  		pos_update2();
+	  		TEST_ALGO
 			//	uart_tx(COM1,"%d,%d;",get_pos(),(get_abs()%73));
-				ide_pos[i]=(get_abs()%73);
+				ide_pos[i]=((get_abs()+93)%73);
 				mea_pos[i]=get_pos();
 				
 				i++;
 		}
 					
 		}
+		
+		for(u16 i=0;i<500;i++){
+			uart_tx(COM1,"%d %d;",mea_pos[i],ide_pos[i]);
+			_delay_ms(5);
+		}
+
 		uart_tx(COM1,"];");
 
 

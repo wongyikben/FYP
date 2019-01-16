@@ -1,35 +1,45 @@
-function [] = compare(input)
+function [] = compare(inpu,bitch)
 
-sample_size = size(input);
-input_size = sample_size(2);
-sample_size = sample_size(1);
+a=zeros(55,3);
 
-no_fil = [];
-mean2 = [];
-mean3 = [];
-mean4 = [];
-gau = [];
-gau1 = [];
-gau2 = [];
-gau3 = [];
 
-for i=1:sample_size
-   no_fil = [no_fil pk2pk([1],input(i,1:input_size))]; 
-   mean2 = [mean2 pk2pk([1 1],input(i,1:input_size))];
-   mean3 = [mean3 pk2pk([1 1 1],input(i,1:input_size))];
-   mean4 = [mean4 pk2pk([1 1 1 1],input(i,1:input_size))];
-   gau = [gau pk2pk([1 2 1],input(i,1:input_size))];
-   gau1 = [gau1 pk2pk([1 2 4 2 1],input(i,1:input_size))]; 
-   gau2 = [gau2 pk2pk([1 2 4 16 4 2 1],input(i,1:input_size))]; 
-   gau3 = [gau3 pk2pk([1 2 2 2 1],input(i,1:input_size))]; 
+
+for i=1:165
+   %figure
+   %subplot(2,1,1);
+   %plot(2:50,inpu(i,2:50));
+   %subplot(2,1,2);
+   %plot(1:49,abs((fft(inpu(i,2:50)))));
+   q=((fft(inpu(i,2:50))));
+   temp = q(4)+q(47);
+   a(ceil(i/3),mod(i,3)+1)=abs(temp)/10;
+   %bitch(i)
+   %prompt = 'next? ';
+   %x = input(prompt); 
+   %close 
 end
-                     %150 kHz   
-no_fil = std(no_fil) %2.3926
-mean2 = std(mean2) %2.2291
-mean3 = std(mean3) %2.6996
-mean4 = std(mean4) %1.8727
-gau = std(gau)     %2.3639
-gau1 = std(gau1)   %1.8175
-gau2 = std(gau2)   %1.6350
-gau3 = std(gau3)   %1.9410
 
+std(a)
+
+return
+
+
+for i=1:3
+figure
+plot(2:50,inpu(i,2:50));
+hold on 
+temp = conv([1 1 1 1]/4,inpu(i,2:50));
+plot(4:49,temp(4:49));
+order = sort(temp(4:49));
+
+mat(i) = order(45)-order(2)
+prompt = 'next? ';
+x = input(prompt); 
+close
+end
+
+plot(inpu(2:20,51)');
+std(inpu(2:20,51)')
+hold on 
+plot(mat(2:20))
+std(mat(2:20))
