@@ -2,8 +2,8 @@ function [x]=shit_solver(input,stfu)
 
 input = input;
 
-offset = [input(1) input(3) input(5)]'*128;
-x= stfu';
+offset = [input(1) input(2) input(3)]'*128;
+x= [1 1 1]';
 iter = 6;
 delta = 1;
 for i=1:iter
@@ -31,7 +31,7 @@ for i=1:iter
 
     
 end
-x(4)= norm(funct(x(1),x(2),x(3),0)-offset);
+%x(4)= norm(funct(x(1),x(2),x(3),0)-offset);
 
 %plot(hi)
 %(norm(funct(x(1),x(2),x(3),0)-offset))

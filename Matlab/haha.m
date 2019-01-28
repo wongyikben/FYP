@@ -16,7 +16,9 @@ y=y';
 % 4 0 2 -26
 % 2 4 0 28
 
-
+% 0 4
+% 1 -9
+% 2 -19
 a = y(1,1:length(y));%37
 b = y(2,1:length(y));
 
@@ -24,7 +26,7 @@ lol = (conv([-1 0 1],b));
 count=0;
 
 
-a = WTF(a);
+%a = WTF(a);
 figure
 plot(a)
 hold on 

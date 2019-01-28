@@ -46,7 +46,7 @@ vec3 read;
 
 s32 save_x[6][72]={0};
 
-s32 WTF[3][1024] = {0};
+s32 WTF[3][73] = {0};
 
 
 
@@ -56,9 +56,11 @@ u16 init_pos = 0;
 
 bool method_flag = false;
 
-#define SENSE_VEL 5
+#define SENSE_VEL 200
+
 bool sense_method = true;
-u16 sense_count = 0;
+bool last_sense = true;
+u32 sense_count = 0;
 
 
 s32 output[3];
@@ -78,14 +80,14 @@ s16 error = 0;
 
 
 s32 get_pos(void){
-	if(mean_vel>=0){
+/*	if(mean_vel>=0){
   	position+=(mean_vel)-5;
 	}
 	if(mean_vel<0){
 		position+=mean_vel-3;
 	}
 	position%=73;
-	if(position<0){position+=72;};
+	if(position<0){position+=72;};*/
 	return position;
 
 }
@@ -113,6 +115,8 @@ output[2] = ((v*a)*inv_sqrt(R*R+(a+c)*(a+c)))>>9;
 
 void induc_sense(void){
 
+	u16 temp = get_abs();
+	
 	DAC_enable(DAC_A);
 	FET_gnd(FET_B);
 	_delay_us(DELAY);
@@ -139,6 +143,17 @@ void induc_sense(void){
 	DAC_enable(DAC_DISABLE);
 	FET_gnd(NO_FET);
 
+	if(temp==150){
+	
+		//uart_tx(COM1,"%d %d %d;",read.n[0]>>6,read.n[1]>>6,read.n[2]>>6);
+	
+	}	
+		
+		
+
+//	WTF[0][(temp+93)%73]=read.n[0]>>6;
+//	WTF[1][(temp+93)%73]=read.n[1]>>6;
+//	WTF[2][(temp+93)%73]=read.n[2]>>6;
 
 }
 
@@ -374,19 +389,19 @@ void pos_update_bemf(void){
 		
 	if(ABS(position*true_count-last_pos)>72){
 		if(position*true_count-last_pos<0){
-			enc+= position*true_count-last_pos+144;
+			enc+= (position*true_count-last_pos+144)*true_count;
 		}else{
-			enc+= position*true_count-last_pos-144;
+			enc+= (position*true_count-last_pos-144)*true_count;
 		}
 	
 	}else{
-			enc += position*true_count-last_pos;
+			enc += (position*true_count-last_pos)*true_count;
 	}
 	last_pos = position;
 	
 	
 	// velocity 
-	enc_vel = enc-last_enc;
+	enc_vel = (enc-last_enc)*true_count;
 	last_enc=enc;
 
 	
@@ -396,12 +411,6 @@ void pos_update_bemf(void){
 	// error calculation 
 	position = (position*146/144);
 	
-	vel_buffer[vel_count++%VEL_BUFFER] = enc_vel;
-	mean_vel = 0;
-	for (u8 i=0;i<VEL_BUFFER;i++){
-		mean_vel +=vel_buffer[i];
-	}
-	mean_vel/=VEL_BUFFER;
 
 	true_count=1;
 
@@ -410,7 +419,7 @@ void pos_update_bemf(void){
 
 void pos_update4(void){
 		
-	s32 tri_x[3]={0};
+	s32 tri_x[5]={0};
 	
 	induc_sense();
 
@@ -432,6 +441,15 @@ void pos_update4(void){
 	// Position estimation code 
 	
 	
+	WTF[0][(temp+93)%73]=x_vec[0].n[0];
+	WTF[1][(temp+93)%73]=x_vec[0].n[1];
+	WTF[2][(temp+93)%73]=x_vec[0].n[2];
+/*	WTF[0][(temp+93)%73]>>=2;
+	WTF[1][(temp+93)%73]>>=2;
+	WTF[2][(temp+93)%73]>>=2;*/
+	
+	
+	
 	tri_x[0] = x_vec[0].n[0]<<7;
 	tri_x[1] = x_vec[0].n[1]<<7;
 	tri_x[2] = x_vec[0].n[2]<<7;
@@ -442,16 +460,25 @@ void pos_update4(void){
 	tri_x[0]-=offset;
 	tri_x[1]-=offset;
 	tri_x[2]-=offset;
+	
+	tri_x[3]=tri_x[0];
+	tri_x[4]=tri_x[1];
 
 
 	ksin = (tri_x[0]-tri_x[1]-tri_x[2])>>9;
 	kcos = (tri_x[1]-tri_x[2])/443;
+	position = app_atan2(ksin,kcos);
 
-	position = (app_atan2(ksin,kcos)+9000)/500;
+
+
+
+
+	position = (position+9000)/500;
 	position%=72;
 	
 	// mean filter 
-/*		if(ABS(position-last_position)>36){
+if(true_count){	
+		if(ABS(position-last_position)>36){
 		if(position>last_position){
 			last_position+=71;
 			curr_position = ((position+last_position)>>1)%72;
@@ -469,7 +496,10 @@ void pos_update4(void){
 		
 		last_position = position;
 	}
-	position = curr_position;*/
+	position = curr_position;
+	
+}
+	position-=4;//????
 	if(position<0){position+=71;}
 	position%=72;
 	
@@ -477,22 +507,21 @@ void pos_update4(void){
 
 	
 	// translate to encoder 
-	
 	if(ABS(position*true_count-last_pos)>36){
 		if(position*true_count-last_pos<0){
-			enc+= position*true_count-last_pos+72;
+			enc+= (position*true_count-last_pos+72)*true_count;
 		}else{
-			enc+= position*true_count-last_pos-72;
+			enc+= (position*true_count-last_pos-72)*true_count;
 		}
 	
 	}else{
-			enc += position*true_count-last_pos;
+			enc += (position*true_count-last_pos)*true_count;
 	}
 	last_pos = position;
 	
 	
 	// velocity 
-	enc_vel = enc-last_enc;
+	enc_vel = (enc-last_enc)*true_count;
 	last_enc=enc;
 
 	
@@ -501,15 +530,8 @@ void pos_update4(void){
 	position = (position*73/72);
 
 	
-	vel_buffer[vel_count++%VEL_BUFFER] = enc_vel;
-	mean_vel = 0;
-	for (u8 i=0;i<VEL_BUFFER;i++){
-		mean_vel +=vel_buffer[i];
-	}
-	mean_vel/=VEL_BUFFER;
 
-	
-	
+
 	
 	
 	true_count=1;
@@ -1283,7 +1305,7 @@ void pos_update(void){
 
 void uart_bitch(void){
 	uart_tx(COM1,"y=[");		
-	for(u16 i=0;i<1024;i++){
+	for(u16 i=0;i<73;i++){
 		uart_tx(COM1,"%d,",WTF[0][i]);
 		uart_tx(COM1,"%d,",WTF[1][i]);
 		uart_tx(COM1,"%d;",WTF[2][i]);
@@ -1360,7 +1382,7 @@ void TIM5_IRQHandler(void){
 }
 
 s32 get_vel(void){
-	return mean_vel;
+	return enc_vel;
 }
 
 
@@ -1385,16 +1407,31 @@ void position_update(void){
 		pos_update_bemf();
 	
 	}
+	if(last_sense==sense_method){
+		vel_buffer[vel_count++%VEL_BUFFER] = enc_vel;
+		mean_vel = 0;
+		for (u8 i=0;i<VEL_BUFFER;i++){
+		mean_vel +=vel_buffer[i];
+		}
+		mean_vel*=100;
+		mean_vel/=VEL_BUFFER;
+	}else{
+		last_sense=sense_method;
+	}
+	
 
 	if(sense_count++>100){
 		if(ABS(mean_vel)<SENSE_VEL&&!sense_method){
-				sense_count = 0;
 				sense_method = true;
+				true_count=0;
+			  sense_count=0;
 		}
 		if(ABS(mean_vel)>=SENSE_VEL&&sense_method){
-				sense_count = 0;
 				sense_method = false;
+				true_count=0;
+			 sense_count=0;
 		}
+		
 	}
 }
 

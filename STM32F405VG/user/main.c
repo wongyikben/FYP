@@ -2,6 +2,8 @@
 
 #define DELAY 10
 #define TEST_ALGO position_update();
+//pos_update4();
+//position_update();
 //pos_update_bemf();
 u32 last_ticks = 0;
 u32 curr_ticks = 0;
@@ -38,7 +40,7 @@ int main(void) {
 	mat_init();	
 	//DAC_enable(DAC_A);
 	//FET_gnd(FET_B);
-	DAC_enable(DAC_A);
+	//DAC_enable(DAC_A);
 	FET_gnd(FET_B);
 	//while(1);
 	//uart_tx(COM1,"y=[");
@@ -72,44 +74,28 @@ int main(void) {
 		}
 		//_delay_us(1);
 		if(last_ticks!=curr_ticks){
-/*	FET_gnd(FET_B);
-	//DAC_enable(DAC_A);
-	//_delay_us(DELAY);
-	reset_dma_adc(SENSE_C);
-	while(!adc_done()){}
-	//DAC_enable(DAC_B);
-	FET_gnd(FET_C);
-	//_delay_us(DELAY);
-	reset_dma_adc(SENSE_A);
-	
-	while(!adc_done()){}
-	//DAC_enable(DAC_C);
-	FET_gnd(FET_A);
-	//delay_us(DELAY);		
-	reset_dma_adc(SENSE_B);
-
-	while(!adc_done()){}		
-	DAC_enable(DAC_DISABLE);
-	FET_gnd(NO_FET);*/
-			
+		//	DAC_enable(DISABLE);
+		//	FET_gnd(FET_B|FET_C);
+		//	reset_dma_adc(SENSE_A);
 			TEST_ALGO
 			
-		//	uart_tx(COM1,"%d\n",get_vel());
+		
 		//	uart_tx(COM1,"%d,%d;",get_pos(),(get_abs()%73));
 			last_ticks = curr_ticks;
 			
 			if(now!=get_method()){
 				now=get_method();
 				if(now){
-				uart_tx(COM1,"HFIM");}
-				else{
-				uart_tx(COM1,"BEMF");
+				 uart_tx(COM1,"HFIM");
+				}else{
+				 uart_tx(COM1,"BEMF");
 				}
 			
 			}
-			
+
 			
 			if(curr_ticks%10==1){
+
 					
 				//uart_tx(COM1,"%d\n",get_abs());
 				
@@ -161,7 +147,8 @@ void record(void){
 			_delay_ms(5);
 		}
 
-		uart_tx(COM1,"];");
+		uart_tx(COM1,"];haha(y);");
+		
 
 
 }

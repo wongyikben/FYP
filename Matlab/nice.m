@@ -1,44 +1,59 @@
-function result = nice(input)
-input = zero_filter(input);
-order = sort(input);
+function [] = nice(input)
+% t=(1:100);
+% y = sin(2*pi*(0.05)*t);
+% thre=0.1;
+% for i = 1:100
+%    if y(i) <thre
+% 
+%        y(i)=thre;
+%    end
+% end
+% 
+% x = conv([1 -1],y);
+% x = x(3:100);
+% (max(x)-min(x))/(2*pi*0.05)
+% plot(x)
+% figure
+% plot(y)
 
-s = length(input);
 
 
-pk2pk = order(s-14)-order(14);
+leng = length(input);
 
-offset = median(input);
-t = 1:s;
+x=[max(input)-mean(input) 270 mean(input)  2*pi]';
+iter = 1000;
+delta = 0.001;
+t = (1:leng);
 
-min = [9999999,0];
-for i=1:75
-    output = norm((pk2pk*sin((2*pi*14*(t+i))/(s))/2+offset)-input);
-    if(output<min(1))
-        min(1)= output;
-        min(2) = i;
-    end
+for i=1:iter
+    temp = x(1)*sin(x(4)*t+x(2))+x(3);
+    
+    d1 = ((x(1)+delta)*sin(x(4)*t+x(2))+x(3)-temp)/delta;
+    d2 = (x(1)*sin(x(4)*t+x(2)+delta)+x(3)-temp)/delta;
+    d3 = (x(1)*sin(x(4)*t+x(2))+x(3)+delta-temp)/delta;
+    d4 = (x(1)*sin((x(4)+delta)*t+x(2))+x(3)-temp)/delta;
+
+    D = ([d1' d2' d3' d4']);
+    
+    
+    invD = inv(D'*D)*D';
+     x = x-invD*(temp-input)';   
+     
+     
+ 
 end
-phase = min(2);
-min = [9999999,0];
-for i=1:400
-    output = norm((i*sin((2*pi*14*(t+phase))/(s))/2+offset)-input);
-    if(output<min(1))
-        min(1)= output;
-        min(2) = i;
-    end
-end
-pk2pk = min(2);
-min = [9999999,0];
-for i=offset-50:offset+50
-    output = norm((pk2pk*sin((2*pi*14*(t+phase))/(s))/2+i)-input);
-    if(output<min(1))
-        min(1)= output;
-        min(2) = i;
-    end
-end
-offset=min(2);
-%result = [offset,pk2pk,phase];
-%y = pk2pk*sin((2*pi*14*(t+phase))/(s))/2+offset;
-result = [offset , pk2pk , phase];
-little_sin(offset,pk2pk,phase,input,1)
-
+pk2pk = x(1)
+%x(2) = mod(x(2),pi);
+phase_shift = x(2)
+offset = x(3)
+% x(4) = mod(x(4),2*pi);
+% if x(4)>pi
+%     x(4)=2*pi-x(4);
+%     
+% end
+% x(1)=x(1)+20;
+%x(1)=-x(1);
+frequency = x(4)
+plot(input)
+hold on 
+plot(x(1)*sin(x(4)*t+x(2))+x(3))

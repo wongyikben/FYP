@@ -243,6 +243,21 @@ s32 median(u8 n, s32* x) {
 }
 
 void pk2pk2(u8 input){
+/*	u8 diu = 0;
+	
+	if (get_abs()==120&&input==0){
+		uart_tx(COM1,"wave=[");
+			for (u8 i=0;i<sense_buffer;i++){
+		uart_tx(COM1,"%d,",ADC_buffer[input][i]);
+		_delay_ms(1);
+	}
+			uart_tx(COM1,"];\n");
+		diu=1;
+	}
+	*/
+	
+	
+	
 	u16 zero_count = 0;
 	u16 freq = get_interval()-1;
 	
@@ -279,6 +294,10 @@ void pk2pk2(u8 input){
 	
 
 	peak_to_peak[input] = ((peak2[1]-peak2[0])*SAM_F*100)/(get_freq()*8*314);
+	
+/*	if (diu==1&&input==0){
+		uart_tx(COM1,"%d,",peak_to_peak[input]);
+	}*/
 
 }
 
