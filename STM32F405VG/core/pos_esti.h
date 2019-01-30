@@ -33,7 +33,7 @@ void TIM5_init(void);
 
 void TIM5_IRQHandler(void);
 
-void mat_init(void);
+void sense_init(void);
 
 
 

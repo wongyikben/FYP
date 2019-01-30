@@ -2,6 +2,7 @@
 
 #define DELAY 10
 #define TEST_ALGO position_update();
+#define DURATION 500
 //pos_update4();
 //position_update();
 //pos_update_bemf();
@@ -9,9 +10,9 @@ u32 last_ticks = 0;
 u32 curr_ticks = 0;
 
 
-u32 time_t[2000]={0};
-s16 ide_pos[2000]={0};
-s16 mea_pos[2000]={0};
+s16 ide_pos[DURATION]={0};
+s16 mea_pos[DURATION]={0};
+u8 method[DURATION]={0};
 u16 mea_x[6][2000]={0,0,0,0,0,0};
 
 void record(void);
@@ -24,11 +25,10 @@ int main(void) {
 
 	led_init();
 	ticks_init();
-	DAC_enable_init();
-	
+
 	dac_init(150,3);
 	uart_init(COM1, 115200);
-	adc_init();
+	
   btn_init();
 	absEnc_init();
 	//_delay_ms(10);
@@ -37,7 +37,7 @@ int main(void) {
 	_delay_ms(100);
 	//u16 last = 0;
 	bool now = 0;
-	mat_init();	
+	sense_init();	
 	//DAC_enable(DAC_A);
 	//FET_gnd(FET_B);
 	//DAC_enable(DAC_A);
@@ -86,9 +86,9 @@ int main(void) {
 			if(now!=get_method()){
 				now=get_method();
 				if(now){
-				 uart_tx(COM1,"HFIM");
+				// uart_tx(COM1,"HFIM");
 				}else{
-				 uart_tx(COM1,"BEMF");
+				// uart_tx(COM1,"BEMF");
 				}
 			
 			}
@@ -127,27 +127,32 @@ int main(void) {
 
 void record(void){
 		uart_tx(COM1,"y=[");
-		for(u16 i=0;i<500;){
+		for(u16 i=0;i<DURATION;){
 			curr_ticks = get_ticks();
 			if(curr_ticks!=last_ticks){
 				last_ticks = curr_ticks;
-				time_t[i]=curr_ticks;
 	  		TEST_ALGO
 			//	uart_tx(COM1,"%d,%d;",get_pos(),(get_abs()%73));
-				ide_pos[i]=((get_abs()+93)%73);
+				ide_pos[i]=((get_abs()+93)%146);
 				mea_pos[i]=get_pos();
-				
+				if(get_method()){
+					method[i]=1;
+				}else{
+					method[i]=0;
+				}
 				i++;
 		}
 					
 		}
 		
-		for(u16 i=0;i<500;i++){
-			uart_tx(COM1,"%d %d;",mea_pos[i],ide_pos[i]);
+		for(u16 i=0;i<DURATION;i++){
+			uart_tx(COM1,"%d %d %d;",mea_pos[i],ide_pos[i],method[i]);
 			_delay_ms(5);
 		}
 
-		uart_tx(COM1,"];haha(y);");
+		uart_tx(COM1,"];subplot(2,1,1);");
+		_delay_ms(5);
+		uart_tx(COM1,"plot(y(1:length(y),1:2));subplot(2,1,2); plot(y(1:length(y),3));");
 		
 
 

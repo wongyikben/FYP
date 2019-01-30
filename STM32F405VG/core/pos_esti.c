@@ -7,9 +7,9 @@
 #define BEMF_DELAY 1
 
 s32 position = 0;
+s32 last_deg = 0;
 s32 last_position = 0;
 s32 curr_position = 0;
-s32 next_postion=0;
 
 s32 last_pos = 0;
 s32 enc = 0;
@@ -17,7 +17,7 @@ s32 last_enc = 0;
 s32 enc_vel = 0;
 
 
-#define VEL_BUFFER 20
+#define VEL_BUFFER 10
 
 s16 vel_buffer[VEL_BUFFER];
 s16 mean_vel = 0;
@@ -26,7 +26,6 @@ u32 vel_count = 0;
 u8 ratio = 80;
 
 u8 true_count = 0;
-s16 last_error = 0;
 s32 x[8] = {0};
 
 
@@ -112,6 +111,27 @@ output[2] = ((v*a)*inv_sqrt(R*R+(a+c)*(a+c)))>>9;
 
 }
 
+
+void enc_cal(void){
+	
+	if(ABS(position*true_count-last_pos)>72){
+		if(position*true_count-last_pos<0){
+			enc+= (position*true_count-last_pos+144);
+		}else{
+			enc+= (position*true_count-last_pos-144);
+		}
+	
+	}else{
+			enc += (position*true_count-last_pos);
+	}
+	last_pos = position;
+	
+	
+	// velocity 
+	enc_vel = (enc-last_enc);
+	last_enc=enc;
+
+}
 
 void induc_sense(void){
 
@@ -204,9 +224,13 @@ void N_method(){
 	x_vec[0]=vec_sub(x_vec[0],offset);
 }
 
-void mat_init(void){
+void sense_init(void){
+	DAC_enable_init();
+	adc_init();
 	vec3 temp;
 
+	last_deg = (get_abs()+93)%146;
+	
 	
 	x_vec[0].n[0]=1;
 	x_vec[0].n[1]=1;
@@ -217,6 +241,9 @@ void mat_init(void){
 	for (u8 i=0;i<10;i++){	
 		N_method();
 	}
+	
+	pos_update4();
+	
 	
 	
 }
@@ -387,32 +414,17 @@ void pos_update_bemf(void){
 	position%=144;
 
 		
-	if(ABS(position*true_count-last_pos)>72){
-		if(position*true_count-last_pos<0){
-			enc+= (position*true_count-last_pos+144)*true_count;
-		}else{
-			enc+= (position*true_count-last_pos-144)*true_count;
-		}
-	
-	}else{
-			enc += (position*true_count-last_pos)*true_count;
-	}
-	last_pos = position;
-	
-	
-	// velocity 
-	enc_vel = (enc-last_enc)*true_count;
-	last_enc=enc;
 
-	
+	enc_cal();
 	//position+=enc_vel;
 
-	
+	last_deg = position;
 	// error calculation 
 	position = (position*146/144);
 	
 
 	true_count=1;
+	
 
 }
 
@@ -429,25 +441,7 @@ void pos_update4(void){
 	N_method();
 	N_method();
 
-/*	vec3 offse;
-	
-	
-	v_funct(x_vec[0]);
-	offse.n[0]=output[0];
-	offse.n[1]=output[1];
-	offse.n[2]=output[2];
-	uart_tx(COM1,"%d\n",vec_length(vec_sub(offse,read))>>10);*/
-
 	// Position estimation code 
-	
-	
-	WTF[0][(temp+93)%73]=x_vec[0].n[0];
-	WTF[1][(temp+93)%73]=x_vec[0].n[1];
-	WTF[2][(temp+93)%73]=x_vec[0].n[2];
-/*	WTF[0][(temp+93)%73]>>=2;
-	WTF[1][(temp+93)%73]>>=2;
-	WTF[2][(temp+93)%73]>>=2;*/
-	
 	
 	
 	tri_x[0] = x_vec[0].n[0]<<7;
@@ -461,15 +455,11 @@ void pos_update4(void){
 	tri_x[1]-=offset;
 	tri_x[2]-=offset;
 	
-	tri_x[3]=tri_x[0];
-	tri_x[4]=tri_x[1];
 
 
 	ksin = (tri_x[0]-tri_x[1]-tri_x[2])>>9;
 	kcos = (tri_x[1]-tri_x[2])/443;
 	position = app_atan2(ksin,kcos);
-
-
 
 
 
@@ -499,41 +489,29 @@ if(true_count){
 	position = curr_position;
 	
 }
-	position-=4;//????
+
+
+	position-=4;//????  I KNOW WHY LA Because this method did not seperate Ld Lq, so this offset is the cos(Ld/Lq) 
 	if(position<0){position+=71;}
 	position%=72;
 	
+	// solve polarity ambiguity 	
+		s16 error_under=ABS(last_deg-position);
+		s16 error_upper=ABS(last_deg-(72+position));
+		if(error_under>72){error_under = 144-error_under;}
+		if(error_upper>72){error_upper = 144-error_upper;}
+		if(error_upper<error_under){position+=72;}		
 	
+	
+	last_deg = position;
 
 	
 	// translate to encoder 
-	if(ABS(position*true_count-last_pos)>36){
-		if(position*true_count-last_pos<0){
-			enc+= (position*true_count-last_pos+72)*true_count;
-		}else{
-			enc+= (position*true_count-last_pos-72)*true_count;
-		}
-	
-	}else{
-			enc += (position*true_count-last_pos)*true_count;
-	}
-	last_pos = position;
+			enc_cal();
 	
 	
-	// velocity 
-	enc_vel = (enc-last_enc)*true_count;
-	last_enc=enc;
-
-	
-
 	// error calculation 
-	position = (position*73/72);
-
-	
-
-
-	
-	
+	position = (position*146/144);
 	true_count=1;
 }
 
@@ -1423,12 +1401,10 @@ void position_update(void){
 	if(sense_count++>100){
 		if(ABS(mean_vel)<SENSE_VEL&&!sense_method){
 				sense_method = true;
-				true_count=0;
 			  sense_count=0;
 		}
 		if(ABS(mean_vel)>=SENSE_VEL&&sense_method){
 				sense_method = false;
-				true_count=0;
 			 sense_count=0;
 		}
 		
