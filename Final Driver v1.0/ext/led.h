@@ -12,7 +12,7 @@
 #include "gpio.h"
 
 #define LED_TABLE \
-X(LED_1, PA12)			
+X(LED_1, PB15)			
 
 #define X(a, b) a,
 typedef enum{

@@ -9,7 +9,7 @@
 u32 last_ticks = 0;
 u32 curr_ticks = 0;
 
-
+u8 FFFF = 0;
 s16 ide_pos[DURATION]={0};
 s16 mea_pos[DURATION]={0};
 u8 method[DURATION]={0};
@@ -25,20 +25,20 @@ int main(void) {
 
 	led_init();
 	ticks_init();
+	DAC_enable_init();
 	dac_init(150,3);
-	uart_init(COM3, 115200);
+	//uart_init(COM3, 115200);
   btn_init();
-	absEnc_init();
-	TIM5_init();
+	//absEnc_init();
+	//TIM5_init();
 	
-	_delay_ms(100);
+	//_delay_ms(100);
 	//u16 last = 0;
 	bool now = 0;
-	sense_init();	
+	//sense_init();	
 	//DAC_enable(DAC_A);
 	//FET_gnd(FET_B);
 	//DAC_enable(DAC_A);
-//	FET_gnd(FET_B);
 	//while(1);
 	//uart_tx(COM3,"y=[");
 
@@ -64,45 +64,37 @@ int main(void) {
 		
 			
 			
-		if(curr_ticks>10000){ // !!!! ESSENTIAL CODE !!!!  
-	   // uart_tx(COM3,"];");
-			//while(1){}
-			//reset_dma_adc(SENSE_B);
-		}
+
 		//_delay_us(1);
 		if(last_ticks!=curr_ticks){
-		//	DAC_enable(DISABLE);
-		//	FET_gnd(FET_B|FET_C);
-		//	reset_dma_adc(SENSE_A);
-			TEST_ALGO
+
+		//	TEST_ALGO
 			
 		
 		//	uart_tx(COM3,"%d,%d;",get_pos(),(get_abs()%73));
 			last_ticks = curr_ticks;
-			
-			//if(now!=get_method()){
-				now=get_method();
-				if(now){
-				// uart_tx(COM3,"HFIM\n");
-				}else{
-				 //uart_tx(COM3,"BEMF\n");
-				}
-			
-		//	}
-
+		
 			
 			if(curr_ticks%10==1){
 
 					
 				//uart_tx(COM3,"%d\n",get_abs());
 				
-				if(btn_onclick(SW_2)){
-					record();
-					//uart_bitch();
+				if(btn_onclick(SW)){
+					FFFF++;
+					FFFF%=4;
+					DAC_enable(ALL_DISABLE);
+					
+					
+					
+					/*if(FFFF==0){
+						FET_gnd(NO_FET);
+					}else{
+						FET_gnd(1<<(FFFF-1));
+					}*/
+					
 				}
-				if(btn_onclick(SW_3)){
-					uart_bitch();	
-				}
+
 				
 				
 				btn_update();

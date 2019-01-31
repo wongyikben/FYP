@@ -26,9 +26,8 @@
 
 //BUTTON       PIN  Pull-up/Pull-down
 #define BTN_TABLE \
-X(SW_1, PB12, GPIO_PuPd_UP) \
-X(SW_2, PB13, GPIO_PuPd_UP) \
-X(SW_3, PB14, GPIO_PuPd_UP) 
+X(SW, PB13, GPIO_PuPd_UP) 
+
 
 #define X(a, b, c) a, 
 typedef enum{
