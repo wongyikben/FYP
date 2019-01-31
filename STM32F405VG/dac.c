@@ -50,7 +50,7 @@ void dac_init(u16 freq,u8 level){
   DAC_InitTypeDef  DAC_InitStructure;
 
 
-  RCC_AHB2PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);      
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);      
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_4;
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AIN;
 	GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
@@ -140,7 +140,7 @@ void DAC_enable_init(void){
 	// PA5,6,7
 	GPIO_InitTypeDef GPIO_InitStructure;
 
-  RCC_AHB2PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);      
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);      
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_5|GPIO_Pin_6|GPIO_Pin_7|GPIO_Pin_3|GPIO_Pin_8|GPIO_Pin_11;
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
 	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;

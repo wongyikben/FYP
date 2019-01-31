@@ -5,6 +5,8 @@
 
 #define DELAY 7
 #define BEMF_DELAY 1
+#define VEL_BUFFER 10
+#define SENSE_VEL 250
 
 s32 position = 0;
 s32 last_deg = 0;
@@ -17,7 +19,7 @@ s32 last_enc = 0;
 s32 enc_vel = 0;
 
 
-#define VEL_BUFFER 10
+bool positive = true;
 
 s16 vel_buffer[VEL_BUFFER];
 s16 mean_vel = 0;
@@ -55,7 +57,7 @@ u16 init_pos = 0;
 
 bool method_flag = false;
 
-#define SENSE_VEL 200
+
 
 bool sense_method = true;
 bool last_sense = true;
@@ -400,7 +402,7 @@ void pos_update_bemf(void){
 		
 		
 	position = (-app_atan2(ksin,kcos)-9000);
-	if(mean_vel>0){
+	if(positive){
 		position+=9000;
 	}else{
 		position-=9000;
@@ -440,7 +442,7 @@ void pos_update4(void){
 	
 	N_method();
 	N_method();
-
+	//N_method();
 	// Position estimation code 
 	
 	
@@ -491,7 +493,8 @@ if(true_count){
 }
 
 
-	position-=4;//????  I KNOW WHY LA Because this method did not seperate Ld Lq, so this offset is the cos(Ld/Lq) 
+
+	position-=0;//????  I KNOW WHY LA Because this method did not seperate Ld Lq, so this offset is the cos(Ld/Lq) 
 	if(position<0){position+=71;}
 	position%=72;
 	
@@ -1374,6 +1377,9 @@ s32 get_enc(void){
 
 void position_update(void){
 	
+	
+	u16 temp = (get_abs()+93)%146;
+	
 	if(sense_method){
 		// high frequency injection
 	
@@ -1398,17 +1404,63 @@ void position_update(void){
 	}
 	
 
-	if(sense_count++>100){
+	if(sense_count++>VEL_BUFFER){
 		if(ABS(mean_vel)<SENSE_VEL&&!sense_method){
 				sense_method = true;
+				last_position=last_deg%72;
 			  sense_count=0;
 		}
 		if(ABS(mean_vel)>=SENSE_VEL&&sense_method){
 				sense_method = false;
+			if(mean_vel>0){
+				positive=true;
+			}else{
+				positive = false;
+			}
+			
+			
 			 sense_count=0;
 		}
 		
 	}
+	vel = temp-last;
+	if(vel>512){
+		vel-=1024;
+	}
+	if(vel<-512){
+		vel+=1024;
+	}
+/*	error = ABS(position-temp);
+	if(error>72){error=144-error;}
+	if(error>30){
+		uart_tx(COM1,"error: %d\n",error);
+		_delay_ms(10);
+		uart_tx(COM1,"mea_pos: %d\n",position);
+		_delay_ms(10);
+		uart_tx(COM1,"ide_pos: %d\n",temp);
+		_delay_ms(10);
+		uart_tx(COM1,"Mode:%d\n",sense_method);
+		_delay_ms(10);
+		uart_tx(COM1,"Mean Velocity: %d\n",mean_vel);
+		_delay_ms(10);
+		uart_tx(COM1,"velcoity: %d\n",enc_vel);
+		_delay_ms(10);
+		uart_tx(COM1,"ideal velocity:%d \n",vel);
+		_delay_ms(10);
+		
+		for(u8 i=0;i<VEL_BUFFER;i++){
+			uart_tx(COM1," %d ",vel_buffer[i]);
+			_delay_ms(5);
+		
+		}
+		
+		
+		while(1){
+		}
+	}*/
+
+	last = temp;
+	
 }
 
 bool get_method(void){

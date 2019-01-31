@@ -35,27 +35,28 @@ void adc_gpio_init(void){
 
 }
 
-void TIM3_init(void){
+void TIM8_init(void){
   TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
         
-  RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM8, ENABLE);
 	
-	TIM_DeInit(TIM3);
+	TIM_DeInit(TIM8);
      
 // TIM_TimeBaseStructInit(&TIM_TimeBaseStructure); 
   TIM_TimeBaseStructure.TIM_Period =1;        //100 => 13k 20=>62.5k 30=>42.37k  10=>120k      9=>130
   TIM_TimeBaseStructure.TIM_Prescaler = 17;                                                               
   TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV4;                                                   
   TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;         
-  TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure);
+  TIM_TimeBaseInit(TIM8, &TIM_TimeBaseStructure);
 	
-	TIM_SelectOutputTrigger(TIM3, TIM_TRGOSource_Update);
+	TIM_SelectOutputTrigger(TIM8, TIM_TRGOSource_Update);
 
-  TIM_Cmd(TIM3, ENABLE);	
+  TIM_Cmd(TIM8, ENABLE);	
 
 }
 
 void adc_bemf_init(u8 input){
+	
 	ADC_InitTypeDef ADC_InitStructure;
 	DMA_InitTypeDef DMA_InitStructure;
 	
@@ -63,7 +64,7 @@ void adc_bemf_init(u8 input){
 	ADC_InitStructure.ADC_ContinuousConvMode = ENABLE;
 	ADC_InitStructure.ADC_ScanConvMode = DISABLE;
 	ADC_InitStructure.ADC_Resolution = ADC_Resolution_12b;
-	ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T3_CC1;
+	ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T8_CC1;
 	ADC_InitStructure.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_None;
 	ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
 	
@@ -110,13 +111,13 @@ void adc_dma_init(u8 input){
 	ADC_InitTypeDef ADC_InitStructure;
 	DMA_InitTypeDef DMA_InitStructure;
 
-	TIM3_init();
+	TIM8_init();
 	
 	ADC_DeInit();
 	ADC_InitStructure.ADC_ContinuousConvMode = DISABLE;
 	ADC_InitStructure.ADC_ScanConvMode = DISABLE;
 	ADC_InitStructure.ADC_Resolution = ADC_Resolution_12b;
-	ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T3_TRGO;
+	ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T8_TRGO;
 	ADC_InitStructure.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_Rising;
 	ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
 	

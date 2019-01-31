@@ -34,7 +34,7 @@ plot(b)
 
 error = a-b;
 
-vara = 73;
+vara = 146;
 
 for i=1:length(error)
    if error(i)>vara/2

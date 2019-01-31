@@ -55,7 +55,7 @@ int main(void) {
 		
 		
 		
-	/*	for(u32 i=0;i<1000;i++){
+		/*for(u32 i=0;i<1000;i++){
 			//inv_sqrt(1);
 			TEST_ALGO
 			//reset_dma_adc(SENSE_C);
@@ -83,15 +83,15 @@ int main(void) {
 		//	uart_tx(COM1,"%d,%d;",get_pos(),(get_abs()%73));
 			last_ticks = curr_ticks;
 			
-			if(now!=get_method()){
+			//if(now!=get_method()){
 				now=get_method();
 				if(now){
-				// uart_tx(COM1,"HFIM");
+				// uart_tx(COM1,"HFIM\n");
 				}else{
-				// uart_tx(COM1,"BEMF");
+				 //uart_tx(COM1,"BEMF\n");
 				}
 			
-			}
+		//	}
 
 			
 			if(curr_ticks%10==1){
@@ -136,7 +136,7 @@ void record(void){
 				ide_pos[i]=((get_abs()+93)%146);
 				mea_pos[i]=get_pos();
 				if(get_method()){
-					method[i]=1;
+					method[i]=145;
 				}else{
 					method[i]=0;
 				}
@@ -150,9 +150,7 @@ void record(void){
 			_delay_ms(5);
 		}
 
-		uart_tx(COM1,"];subplot(2,1,1);");
-		_delay_ms(5);
-		uart_tx(COM1,"plot(y(1:length(y),1:2));subplot(2,1,2); plot(y(1:length(y),3));");
+		uart_tx(COM1,"];plot(y);ylim([-5 150])");
 		
 
 
