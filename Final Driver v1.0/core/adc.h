@@ -33,7 +33,7 @@ s16 get_bemf(u8 input);
 
 void reset_dma_adc_bemf(u8 input);
 
-u32 get_count(void);
+void ADC_midpt_cal(u8 input);
 
 bool adc_done(void);
 

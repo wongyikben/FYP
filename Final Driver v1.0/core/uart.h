@@ -39,7 +39,7 @@
 
 //COM   UART    TX   RX    RCC                 RCC line     AF              Interrupt 
 #define UART_TABLE \
-X(COM3, USART3, PB10, PB11, RCC_APB1Periph_USART3, 2, GPIO_AF_USART3, USART3_IRQn) \
+X(COM3, USART3, PB10, PB11, RCC_APB1Periph_USART3, 1, GPIO_AF_USART3, USART3_IRQn) \
 
 #define X(a, b, c, d, e, f, g, h) a,
 typedef enum {

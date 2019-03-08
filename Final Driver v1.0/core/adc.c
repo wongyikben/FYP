@@ -1,18 +1,22 @@
 #include "adc.h"
 #include "../dac.h"
+#include "pos_esti.h"
 
 #define sense_buffer 50
 #define BEMF_buffer 3
 #define SAM_F 2454
-#define ADC_MEAN 2060
 
+TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
+ADC_InitTypeDef ADC_InitStru;
+DMA_InitTypeDef DMA_InitStru;
 
 volatile s16 ADC_buffer[3][sense_buffer] = {0};
 s16 peak_to_peak[3] = {0};
 volatile u16 reading[1024] = {0};
 volatile bool flag = 0; // 0 not occupy ; 1 occupy
-volatile u32 count = 0;
 u8 curr_input=0;
+u16 ADC_MEAN[3]={0};
+s16 HIF_BEMF[3]={0};
 
 
 void DMA2_Stream0_IRQHandler(void) { //ADC DMA interrupt handler
@@ -36,17 +40,11 @@ void adc_gpio_init(void){
 }
 
 void TIM8_init(void){
-  TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
-        
-  RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM8, ENABLE);
-	
+  
+       	
 	TIM_DeInit(TIM8);
      
 // TIM_TimeBaseStructInit(&TIM_TimeBaseStructure); 
-  TIM_TimeBaseStructure.TIM_Period =1;        //100 => 13k 20=>62.5k 30=>42.37k  10=>120k      9=>130
-  TIM_TimeBaseStructure.TIM_Prescaler = 17;                                                               
-  TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV4;                                                   
-  TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;         
   TIM_TimeBaseInit(TIM8, &TIM_TimeBaseStructure);
 	
 	TIM_SelectOutputTrigger(TIM8, TIM_TRGOSource_Update);
@@ -56,105 +54,62 @@ void TIM8_init(void){
 }
 
 void adc_bemf_init(u8 input){
-	ADC_InitTypeDef ADC_InitStructure;
-	DMA_InitTypeDef DMA_InitStructure;
+
+	
+	//DMA_Cmd(DMA2_Stream1, DISABLE);
+	DMA2_Stream1->CR &= ~(uint32_t)DMA_SxCR_EN;
+	ADC2->CR2 &= (uint32_t)(~(ADC_CR2_DDS|ADC_CR2_DMA|ADC_CR2_ADON));
 	
 	ADC_DeInit();
-	ADC_InitStructure.ADC_ContinuousConvMode = ENABLE;
-	ADC_InitStructure.ADC_ScanConvMode = DISABLE;
-	ADC_InitStructure.ADC_Resolution = ADC_Resolution_12b;
-	ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T8_CC1;
-	ADC_InitStructure.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_None;
-	ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
-	
-	// common init
-	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralToMemory;
-	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
-	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
-	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
-	DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
-	DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;
-	DMA_InitStructure.DMA_Priority = DMA_Priority_High;
-	DMA_InitStructure.DMA_FIFOMode = DMA_FIFOMode_Disable;         
-  DMA_InitStructure.DMA_FIFOThreshold = DMA_FIFOThreshold_HalfFull;
-  DMA_InitStructure.DMA_MemoryBurst = DMA_MemoryBurst_Single;
-  DMA_InitStructure.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;
-
 	ADC_RegularChannelConfig(ADC1, input , 1, ADC_SampleTime_3Cycles); // here to change the reading pin
-	
-	
-	ADC_InitStructure.ADC_NbrOfConversion = 1;
-	ADC_Init(ADC1, &ADC_InitStructure);
+	ADC_Init(ADC1, &ADC_InitStru);
 	// specific for adc initi
-	DMA_InitStructure.DMA_Channel =  DMA_Channel_0;
-	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t) &(ADC1)->DR;
-	DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t) &(ADC_buffer[input]);
-	DMA_InitStructure.DMA_BufferSize = BEMF_buffer;
-	DMA_Init(DMA2_Stream0, &DMA_InitStructure); // DMA2 ADC1 S0C0  ADC2 S2C1 ADC3 S0C2
+	DMA_InitStru.DMA_Memory0BaseAddr = (uint32_t) &(ADC_buffer[input]);
+	DMA_InitStru.DMA_BufferSize = BEMF_buffer;
+	DMA_Init(DMA2_Stream0, &DMA_InitStru); // DMA2 ADC1 S0C0  ADC2 S2C1 ADC3 S0C2
 	
 	
 	
 	DMA_ITConfig(DMA2_Stream0, DMA_IT_TC, ENABLE);
-	DMA_Cmd(DMA2_Stream0, ENABLE);
-	
-	ADC_DMARequestAfterLastTransferCmd(ADC1, ENABLE);
-	ADC_DMACmd(ADC1, ENABLE);
-	ADC_Cmd(ADC1, ENABLE);
-	ADC_SoftwareStartConv(ADC1);
 
+	DMA2_Stream0->CR |= (uint32_t)DMA_SxCR_EN;
+	ADC1->CR2 |= (uint32_t)(ADC_CR2_DDS|ADC_CR2_DMA|ADC_CR2_ADON|ADC_CR2_SWSTART);
+	ADC1->CR2 |= (uint32_t)ADC_CR2_SWSTART;
 
 }
 
 
 void adc_dma_init(u8 input){
-	ADC_InitTypeDef ADC_InitStructure;
-	DMA_InitTypeDef DMA_InitStructure;
+
 
 	TIM8_init();
 	
-	ADC_DeInit();
-	ADC_InitStructure.ADC_ContinuousConvMode = DISABLE;
-	ADC_InitStructure.ADC_ScanConvMode = DISABLE;
-	ADC_InitStructure.ADC_Resolution = ADC_Resolution_12b;
-	ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T8_TRGO;
-	ADC_InitStructure.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_Rising;
-	ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
 	
-	// common init
-	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralToMemory;
-	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
-	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
-	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
-	DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
-	DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;
-	DMA_InitStructure.DMA_Priority = DMA_Priority_High;
-	DMA_InitStructure.DMA_FIFOMode = DMA_FIFOMode_Disable;         
-  DMA_InitStructure.DMA_FIFOThreshold = DMA_FIFOThreshold_HalfFull;
-  DMA_InitStructure.DMA_MemoryBurst = DMA_MemoryBurst_Single;
-  DMA_InitStructure.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;
+	DMA2_Stream1->CR &= ~(uint32_t)DMA_SxCR_EN;
+	ADC2->CR2 &= (uint32_t)(~(ADC_CR2_DDS|ADC_CR2_DMA|ADC_CR2_ADON));
+	//ADC2->CR2 &= (uint32_t)(~ADC_CR2_DMA);
+	//ADC2->CR2 &= (uint32_t)(~ADC_CR2_ADON);
+	
+	
+	ADC_DeInit();
+
 
 	ADC_RegularChannelConfig(ADC1, input , 1, ADC_SampleTime_3Cycles); // here to change the reading pin
 	
 	
-	ADC_InitStructure.ADC_NbrOfConversion = 1;
-	ADC_Init(ADC1, &ADC_InitStructure);
+	
+	ADC_Init(ADC1, &ADC_InitStru);
 	// specific for adc initi
-	DMA_InitStructure.DMA_Channel =  DMA_Channel_0;
-	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t) &(ADC1)->DR;
-	DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t) &(ADC_buffer[input]);
-	DMA_InitStructure.DMA_BufferSize = sense_buffer;
-	DMA_Init(DMA2_Stream0, &DMA_InitStructure); // DMA2 ADC1 S0C0  ADC2 S2C1 ADC3 S0C2
+	DMA_InitStru.DMA_Memory0BaseAddr = (uint32_t) &(ADC_buffer[input]);
+	DMA_InitStru.DMA_BufferSize = sense_buffer;
+	DMA_Init(DMA2_Stream0, &DMA_InitStru); // DMA2 ADC1 S0C0  ADC2 S2C1 ADC3 S0C2
 	
-	
-
 	
 	DMA_ITConfig(DMA2_Stream0, DMA_IT_TC, ENABLE);
-	DMA_Cmd(DMA2_Stream0, ENABLE);
 	
-	ADC_DMARequestAfterLastTransferCmd(ADC1, ENABLE);
-	ADC_DMACmd(ADC1, ENABLE);
-	ADC_Cmd(ADC1, ENABLE);
-	ADC_SoftwareStartConv(ADC1);
+	DMA2_Stream0->CR |= (uint32_t)DMA_SxCR_EN;
+	ADC1->CR2 |= (uint32_t)(ADC_CR2_DDS|ADC_CR2_DMA|ADC_CR2_ADON|ADC_CR2_SWSTART);
+	ADC1->CR2 |= (uint32_t)ADC_CR2_SWSTART;
 
 }
 
@@ -166,7 +121,7 @@ void adc_init(void){
 	ADC_CommonInitTypeDef ADC_CommonInitStruct; 
 	NVIC_InitTypeDef NVIC_InitStructure;
 
-
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM8, ENABLE);
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE); 
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA2, ENABLE); 
 	
@@ -178,6 +133,36 @@ void adc_init(void){
 	ADC_CommonInitStruct.ADC_Prescaler = ADC_Prescaler_Div2;
 	ADC_CommonInitStruct.ADC_TwoSamplingDelay = ADC_TwoSamplingDelay_5Cycles;
 	ADC_CommonInit(&ADC_CommonInitStruct);
+	
+	
+	TIM_TimeBaseStructure.TIM_Period =1;        //100 => 13k 20=>62.5k 30=>42.37k  10=>120k      9=>130
+  TIM_TimeBaseStructure.TIM_Prescaler = 17;                                                               
+  TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV4;                                                   
+  TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up; 
+
+
+	ADC_InitStru.ADC_ContinuousConvMode = ENABLE;
+	ADC_InitStru.ADC_ScanConvMode = DISABLE;
+	ADC_InitStru.ADC_Resolution = ADC_Resolution_12b;
+	ADC_InitStru.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T8_CC1;
+	ADC_InitStru.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_None;
+	ADC_InitStru.ADC_DataAlign = ADC_DataAlign_Right;
+	
+	// common init
+	DMA_InitStru.DMA_DIR = DMA_DIR_PeripheralToMemory;
+	DMA_InitStru.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
+	DMA_InitStru.DMA_MemoryInc = DMA_MemoryInc_Enable;
+	DMA_InitStru.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
+	DMA_InitStru.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
+	DMA_InitStru.DMA_Mode = DMA_Mode_Normal;
+	DMA_InitStru.DMA_Priority = DMA_Priority_High;
+	DMA_InitStru.DMA_FIFOMode = DMA_FIFOMode_Disable;         
+  DMA_InitStru.DMA_FIFOThreshold = DMA_FIFOThreshold_HalfFull;
+  DMA_InitStru.DMA_MemoryBurst = DMA_MemoryBurst_Single;
+  DMA_InitStru.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;
+	ADC_InitStru.ADC_NbrOfConversion = 1;
+	DMA_InitStru.DMA_Channel =  DMA_Channel_0;
+	DMA_InitStru.DMA_PeripheralBaseAddr = (uint32_t) &(ADC1)->DR;
 	
 	//ADC init
 	adc_dma_init(1);
@@ -243,18 +228,15 @@ s32 median(u8 n, s32* x) {
 }
 
 void pk2pk2(u8 input){
-/*	u8 diu = 0;
 	
-	if (get_abs()==120&&input==0){
-		uart_tx(COM3,"wave=[");
+/*		uart_tx(COM3,"wave=[");
 			for (u8 i=0;i<sense_buffer;i++){
 		uart_tx(COM3,"%d,",ADC_buffer[input][i]);
 		_delay_ms(1);
 	}
-			uart_tx(COM3,"];\n");
-		diu=1;
-	}
-	*/
+			uart_tx(COM3,"];\n");*/
+	
+	
 	
 	
 	
@@ -294,6 +276,7 @@ void pk2pk2(u8 input){
 	
 
 	peak_to_peak[input] = ((peak2[1]-peak2[0])*SAM_F*100)/(get_freq()*8*314);
+	HIF_BEMF[input] = sense_buffer*(peak2[1]+peak2[0])/8;
 	
 /*	if (diu==1&&input==0){
 		uart_tx(COM3,"%d,",peak_to_peak[input]);
@@ -303,17 +286,18 @@ void pk2pk2(u8 input){
 
 
 void bemf(u8 input){
-	peak_to_peak[input] =((ADC_buffer[input][1]+ADC_buffer[input][2])>>1)-ADC_MEAN;
+	peak_to_peak[input] =((ADC_buffer[input][1]+ADC_buffer[input][2])>>1)-ADC_MEAN[input];
 }
 
 
 void pk2pk(u8 input){
 
-	
-	/*for (u8 i=0;i<sense_buffer;i++){
+/*	uart_tx(COM3,"adc=[");
+	for (u8 i=0;i<sense_buffer;i++){
 		uart_tx(COM3,"%d,",ADC_buffer[input][i]);
 		_delay_ms(1);
-	}*/
+	}
+	uart_tx(COM3,"];\n");*/
 	
 	u16 zero_count = 0;
 	u16 freq = get_interval()-1;
@@ -379,9 +363,11 @@ s16 get_pk2pk(u8 input){
 }
 
 s16 get_bemf(u8 input){
-	bemf(input);
+
+		bemf(input);
 	//uart_tx(COM3,"%d;",peak_to_peak[input]);
-	return (peak_to_peak[input]);
+		return (peak_to_peak[input]);
+
 }
 
 
@@ -414,7 +400,17 @@ void uart_reading(void){
 }
 
 
-u32 get_count(void){
-	return count;
+void ADC_midpt_cal(u8 input){
+	reset_dma_adc(input);
+	while(!adc_done()){}
+		
+	u32 mean = 0;
+	for (u8 i=0;i<sense_buffer;i++){
+		mean+=ADC_buffer[input][i];
+	}
+	mean/=sense_buffer;
+	ADC_MEAN[input] = mean;
+
+//	uart_tx(COM3,"%d \n",mean);
 }
 

@@ -27,10 +27,10 @@ count=0;
 
 
 %a = WTF(a);
-figure
-plot(a)
-hold on 
-plot(b)
+% figure
+% plot(a)
+% hold on 
+% plot(b)
 
 error = a-b;
 
@@ -44,12 +44,14 @@ for i=1:length(error)
        error(i)=error(i)+vara;
    end
 end
-figure 
-plot(error)
-figure
-hist(error)
+ figure 
+ plot(error)
+ hold on 
+ plot((y(3,1:500)./145-0.5)*20);
+% figure
+% hist(error)
 A = sort(error);
-min_error=A(20)
-max_error=A(length(y)-10)
-rms((error))
+min_error=[A(20) A(20)*360/1024 (A(20)*360*7/1024)]
+max_error=[A(length(y)-10) A(length(y)-10)*360/1024 (A(length(y)-10)*7*360/1024)]
+error=[rms((error)) rms((error))*360/1024 (rms((error))*360*7/1024)]
 

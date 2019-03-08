@@ -2,11 +2,16 @@
 #include "macro_math.h"
 #include "../core/vec.h"
 #include "approx_math.h"
+#include "../CurrentSensing.h"
+#include "adc.h"
+#include "../dac.h"
+#include "../absEnc.h"
+#include "trigon_math.h"
+#include "uart.h"
 
 #define DELAY 7
 #define BEMF_DELAY 1
-#define VEL_BUFFER 10
-#define SENSE_VEL 250
+#define K_THRESH 6000
 
 s32 position = 0;
 s32 last_deg = 0;
@@ -19,37 +24,25 @@ s32 last_enc = 0;
 s32 enc_vel = 0;
 
 
-u16 Mode = 0x10;
 
-
-
-bool positive = true;
-
-s16 vel_buffer[VEL_BUFFER];
-s16 mean_vel = 0;
-u32 vel_count = 0;
-
-u8 ratio = 80;
 
 u8 true_count = 0;
-s32 x[8] = {0};
+s32 x[3] = {0};
 
 
 
-s32 lastx[6]={0};
 s32 result[3] = {0};
-u8 k = 0;
+u32 k = 0;
 s32 ksin = 0;
 s32 kcos = 0;
 s32 offset = 0;
-u32 max[6]={0};
-u32 min[6]={0xffff,0xffff,0xffff,0xffff,0xffff,0xffff};
+
 
 
 vec3 x_vec[2];
 vec3 read;
+vec3 last_read;
 
-s32 save_x[6][72]={0};
 
 s32 WTF[3][73] = {0};
 
@@ -64,8 +57,7 @@ bool method_flag = false;
 
 
 bool sense_method = true;
-bool last_sense = true;
-u32 sense_count = 0;
+
 
 
 s32 output[3];
@@ -85,14 +77,6 @@ s16 error = 0;
 
 
 s32 get_pos(void){
-/*	if(mean_vel>=0){
-  	position+=(mean_vel)-5;
-	}
-	if(mean_vel<0){
-		position+=mean_vel-3;
-	}
-	position%=73;
-	if(position<0){position+=72;};*/
 	return position;
 
 }
@@ -143,20 +127,27 @@ void induc_sense(void){
 
 	u16 temp = get_abs();
 	
-	DAC_enable(Mode|DAC_A);
+	//DAC_enable(Mode|DAC_A);
+	GPIOC->ODR = ((GPIOC->ODR)&(0xC307))|(0x0008);
 	FET_gnd(FET_B);
 	_delay_us(DELAY);
-	reset_dma_adc(SENSE_C);
+  reset_dma_adc(SENSE_C);
+	
+	
 	while(!adc_done()){}
-	DAC_enable(Mode|DAC_B);
+
+	//DAC_enable(Mode|DAC_B);
+	GPIOC->ODR = ((GPIOC->ODR)&(0xC307))|(0x0010);
 	FET_gnd(FET_C);
-	_delay_us(DELAY);
+	_delay_us(DELAY);	
 	reset_dma_adc(SENSE_A);
 	read.n[0] = (s32)(get_pk2pk(SENSE_C))<<6;
 	
 
 	while(!adc_done()){}
-	DAC_enable(Mode|DAC_C);
+	
+	//DAC_enable(Mode|DAC_C);
+	GPIOC->ODR = ((GPIOC->ODR)&(0xC307))|(0x0020);
 	FET_gnd(FET_A);
 	_delay_us(DELAY);	
 	reset_dma_adc(SENSE_B);
@@ -166,16 +157,24 @@ void induc_sense(void){
 	
 	while(!adc_done()){}
 	read.n[2] = (s32)(get_pk2pk(SENSE_B))<<6;			
-	DAC_enable(DAC_DISABLE);
+	DAC_enable(ALL_DISABLE);
 	FET_gnd(NO_FET);
-
-	if(temp==150){
 	
-		//uart_tx(COM3,"%d %d %d;",read.n[0]>>6,read.n[1]>>6,read.n[2]>>6);
-	
+	//current_sensing_init();
+	//uart_tx(COM3,"%d\n",read.n[2]>>6);
+	// cheat
+			
+	/*if(last_read.n[0]!=0){
+		if(ABS(last_read.n[0]-read.n[0])>3200){read.n[0]=last_read.n[0];}
+		if(ABS(last_read.n[1]-read.n[1])>3200){read.n[1]=last_read.n[1];}
+		if(ABS(last_read.n[2]-read.n[2])>3200){read.n[2]=last_read.n[2];}
 	}	
 		
-		
+	last_read = read;*/
+				
+	
+	
+		//current_senseing_re();
 
 //	WTF[0][(temp+93)%73]=read.n[0]>>6;
 //	WTF[1][(temp+93)%73]=read.n[1]>>6;
@@ -183,6 +182,44 @@ void induc_sense(void){
 
 }
 
+
+
+void bemf_sense(void){
+	DAC_enable(ALL_DISABLE);
+	FET_gnd(FET_B);
+	_delay_us(BEMF_DELAY);
+	reset_dma_adc_bemf(SENSE_C);
+	while(!adc_done()){}
+	FET_gnd(FET_C);
+	_delay_us(BEMF_DELAY);
+	reset_dma_adc_bemf(SENSE_A);
+	x[1] = (s32)(get_bemf(SENSE_C));
+	//WTF[1][temp]=x[1];
+	x[1]<<=7;
+
+	while(!adc_done()){}
+	FET_gnd(FET_A);
+	_delay_us(BEMF_DELAY);	
+	reset_dma_adc_bemf(SENSE_B);
+	x[2] = (s32)(get_bemf(SENSE_A));
+	//WTF[2][temp]=x[2];
+	x[2]<<=7;
+		
+		
+
+	while(!adc_done()){}
+	x[0] = (s32)(get_bemf(SENSE_B));
+	//WTF[0][temp]=x[0];	
+  x[0]<<=7;		
+	DAC_enable(ALL_DISABLE);
+	FET_gnd(NO_FET);
+
+	//current_sensing_init();
+	//uart_tx(COM3,"%d %d %d\n",x[0]>>7,x[1]>>7,x[2]>>7);	
+		
+		
+		
+}
 
 #define delta 	1
 
@@ -231,10 +268,26 @@ void N_method(){
 }
 
 void sense_init(void){
+	//u8 vlevel = 5;
+	//dac_init(150,vlevel);
+	dac_init(220,5);
 	DAC_enable_init();
 	adc_init();
 	vec3 temp;
 
+	
+	FET_gnd(FET_A);
+	_delay_ms(10);
+	ADC_midpt_cal(SENSE_A);
+	
+	FET_gnd(FET_B);
+	_delay_ms(10);
+	ADC_midpt_cal(SENSE_B);
+	
+	FET_gnd(FET_C);
+	_delay_ms(10);
+	ADC_midpt_cal(SENSE_C);
+	
 	last_deg = (get_abs()+93)%146;
 	
 	
@@ -243,161 +296,39 @@ void sense_init(void){
 	x_vec[0].n[2]=1;
 	
 	induc_sense();
+	/*while((read.n[0]>>6)<490){
+		vlevel++;
+		dac_init(150,vlevel);
+		adc_init();
+		_delay_ms(500);
+		induc_sense();
+		if(vlevel==6){
+			break;
+		}
+	}*/
+	//uart_tx(COM3,"%d,%d\n",vlevel,read.n[0]>>6);
 	
+	
+
 	for (u8 i=0;i<10;i++){	
 		N_method();
 	}
 	
-	pos_update4();
+	pos_update_induc();
 	
 	
 	
 }
 
-
-s32 get_k(void){
-	s32 k=0;
-	s32 tri_x[3]={0};
-	u16 temp = get_abs();
-	DAC_enable(DAC_A);
-	FET_gnd(FET_B);
-	reset_dma_adc(SENSE_C);
-	while(!adc_done()){}
-	DAC_enable(DAC_A);
-	FET_gnd(FET_C);
-	reset_dma_adc(SENSE_B);	
-	x[0] = (s32)(get_pk2pk(SENSE_C));
-		
-	if(true_count){
-	x[0]=(x[0]*ratio+lastx[0]*(100-ratio))/100;	}
-	lastx[0]=x[0];		
-		
-		
-	while(!adc_done()){}
-	DAC_enable(DAC_B);
-	FET_gnd(FET_A);
-	reset_dma_adc(SENSE_C);	
-	x[1] = (s32)(get_pk2pk(SENSE_B));
-	if(true_count){
-	x[1]=(x[1]*ratio+lastx[1]*(100-ratio))/100;	}
-	lastx[1]=x[1];		
-		
-
-	while(!adc_done()){}
-	DAC_enable(DAC_B);
-	FET_gnd(FET_C);
-	reset_dma_adc(SENSE_A);
-	x[3] =(s32)(get_pk2pk(SENSE_C));
-	if(true_count){	
-	x[3]=(x[3]*ratio+lastx[3]*(100-ratio))/100;	}
-	lastx[3]=x[3];		
-			
-		
-
-	while(!adc_done()){}
-	DAC_enable(DAC_C);
-	FET_gnd(FET_A);
-	reset_dma_adc(SENSE_B);
-	x[2] = (s32)(get_pk2pk(SENSE_A));
-	if(true_count){
-	x[2]=(x[2]*ratio+lastx[2]*(100-ratio))/100;	}
-	lastx[2]=x[2];	
-	
-	
-	while(!adc_done()){}
-	DAC_enable(DAC_C);
-	FET_gnd(FET_B);
-	reset_dma_adc(SENSE_A);	
-	x[4] = (s32)(get_pk2pk(SENSE_B));	
-	if(true_count){
-	x[4]=(x[4]*ratio+lastx[4]*(100-ratio))/100;	}
-	lastx[4]=x[4];		
-
-	while(!adc_done()){}
-	x[5] = (s32)(get_pk2pk(SENSE_A));
-	if(true_count){
-	x[5]=(x[5]*ratio+lastx[5]*(100-ratio))/100;	}
-	lastx[5]=x[5];	
-		
-	DAC_enable(DAC_DISABLE);
-	FET_gnd(NO_FET);
-
-	
-	x_vec[0].n[0]=1;
-	x_vec[0].n[1]=1;
-	x_vec[0].n[2]=1;
-	
-	//N_method(0);
-
-	
-  x_vec[1].n[0]=1;
-	x_vec[1].n[1]=1;
-	x_vec[1].n[2]=1;
-	
-	//N_method(1);
-
-	// Position estimation code 
-	
-	tri_x[0] = (x_vec[0].n[0]+x_vec[1].n[0])<<7;
-	tri_x[1] = (x_vec[0].n[1]+x_vec[1].n[1])<<7;
-	tri_x[2] = (x_vec[0].n[2]+x_vec[1].n[2])<<7;
-	
-	tri_x[0] = x_vec[0].n[0];
-	tri_x[1] = x_vec[0].n[1];
-	tri_x[2] = x_vec[0].n[2];
-
-
-	offset = (tri_x[0]+tri_x[1]+tri_x[2])/3;
-
-	tri_x[0]-=offset;
-	tri_x[1]-=offset;
-	tri_x[2]-=offset;
-
-
-	ksin = (tri_x[0]-tri_x[1]-tri_x[2])>>8;
-	kcos = (tri_x[1]-tri_x[2])/222;
-	
-	k = Sqrt(ksin*ksin+kcos*kcos);
-	return k;
-
-}
 
 
 
 
 void pos_update_bemf(void){
-
 	u16 temp = get_abs();
-	// 1 0 2
-	FET_gnd(FET_B);
-	_delay_us(BEMF_DELAY);
-	reset_dma_adc_bemf(SENSE_C);
-	while(!adc_done()){}
-	FET_gnd(FET_C);
-	_delay_us(BEMF_DELAY);
-	reset_dma_adc_bemf(SENSE_A);
-	x[1] = (s32)(get_bemf(SENSE_C));
-	WTF[1][temp]=x[1];
-	x[1]<<=7;
 
-	while(!adc_done()){}
-	FET_gnd(FET_A);
-	_delay_us(BEMF_DELAY);	
-	reset_dma_adc_bemf(SENSE_B);
-	x[2] = (s32)(get_bemf(SENSE_A));
-	WTF[2][temp]=x[2];
-	x[2]<<=7;
-		
-		
-
-	while(!adc_done()){}
-	x[0] = (s32)(get_bemf(SENSE_B));
-	WTF[0][temp]=x[0];	
-  x[0]<<=7;		
-	DAC_enable(DAC_DISABLE);
-	FET_gnd(NO_FET);
-		
-		
+	bemf_sense();		
+	
 	
 
 	ksin = (x[0]-x[1]-x[2])>>9;
@@ -406,27 +337,29 @@ void pos_update_bemf(void){
 		
 		
 	position = (-app_atan2(ksin,kcos)-9000);
-	if(positive){
-		position+=9000;
-	}else{
-		position-=9000;
-	}	
 	
+	//u32 tp = ksin*ksin+kcos*kcos;
+	//if(tp>1300){
+	//uart_tx(COM3,"%d,%d\n",ksin*ksin+kcos*kcos,mean_vel);}
+	//if(positive){position+=9000;}else{position-=9000;}	
+	
+	position+=9000;
 	position/=250;
 	
-	if(position<0){
-		position+=144;
-	}
+	if(position<0){position+=144;}
 	position%=144;
-
-		
+			s16 error_under=ABS(last_deg-position);
+		s16 error_upper=ABS(last_deg-(72+position));
+		if(error_under>72){error_under = 144-error_under;}
+		if(error_upper>72){error_upper = 144-error_upper;}
+		if(error_upper<error_under){position+=72;}	
 
 	enc_cal();
-	//position+=enc_vel;
+	
 
 	last_deg = position;
 	// error calculation 
-	position = (position*146/144);
+	//position = (position*146/144);
 	
 
 	true_count=1;
@@ -435,9 +368,11 @@ void pos_update_bemf(void){
 }
 
 
-void pos_update4(void){
+void pos_update_induc(void){
 		
-	s32 tri_x[5]={0};
+	//bemf_sense();
+		
+	s32 tri_x[3]={0};
 	
 	induc_sense();
 
@@ -446,31 +381,52 @@ void pos_update4(void){
 	
 	N_method();
 	N_method();
-	//N_method();
-	// Position estimation code 
+	N_method();
 	
+
+	
+	// Position estimation code 
+	//	WTF[0][(temp+93)%73]=x_vec[0].n[0];
+  // 	WTF[1][(temp+93)%73]=x_vec[0].n[1];
+  //	WTF[2][(temp+93)%73]=x_vec[0].n[2];
+	
+	// 2686 632
+	// 2659 642
+	// 2746 641
+	
+	//tri_x[0] = ((x_vec[0].n[0]-2686)*8192)/632;
+	//tri_x[1] = ((x_vec[0].n[1]-2659)*8192)/642;
+	//tri_x[2] = ((x_vec[0].n[2]-2746)*8192)/641;
+
+	//uart_tx(COM3,"%d\n",(tri_x[0]+tri_x[1]+tri_x[2]));
 	
 	tri_x[0] = x_vec[0].n[0]<<7;
 	tri_x[1] = x_vec[0].n[1]<<7;
 	tri_x[2] = x_vec[0].n[2]<<7;
-
-
+	
 	offset = (tri_x[0]+tri_x[1]+tri_x[2])/3;
 
 	tri_x[0]-=offset;
 	tri_x[1]-=offset;
 	tri_x[2]-=offset;
 	
+	
+	
 
-
-	ksin = (tri_x[0]-tri_x[1]-tri_x[2])>>9;
-	kcos = (tri_x[1]-tri_x[2])/443;
+	ksin = (tri_x[0]-tri_x[1]-tri_x[2])>>9; //2^9 = 2*256
+	kcos = (tri_x[1]-tri_x[2])/443;   //443 = 2sin(pi/3)*256
 	position = app_atan2(ksin,kcos);
 
+	//k = ksin*ksin + kcos*kcos;
+	
 
-
+	
+	
+	
+	//uart_tx(COM3,"%d,",Sqrt(k)>>10);
 	position = (position+9000)/500;
 	position%=72;
+	last_position%=72;
 	
 	// mean filter 
 if(true_count){	
@@ -518,774 +474,63 @@ if(true_count){
 	
 	
 	// error calculation 
-	position = (position*146/144);
+	//position = (position*146/144);
 	true_count=1;
+	
+		
 }
 
 
 
 
-void pos_update2(void){
-	
-	
+void position_update(void){
 	u16 temp = get_abs();
 	
-	if(!method_flag){
-	DAC_enable(DAC_A);
-	FET_gnd(FET_B);
-	reset_dma_adc(SENSE_C);
-	while(!adc_done()){}
-	DAC_enable(DAC_A);
-	FET_gnd(FET_C);
-	reset_dma_adc(SENSE_B);	
-	x[0] = (s32)(get_pk2pk(SENSE_C))<<7;
-		
-	//max[0]=x[0];
-	if(true_count){
-	x[0]=(x[0]*ratio+lastx[0]*(100-ratio))/100;	}
-	lastx[0]=x[0];	
-	x[6] = x[0];	
-		
-		
-	while(!adc_done()){}
-	DAC_enable(DAC_B);
-	FET_gnd(FET_A);
-	reset_dma_adc(SENSE_C);	
-	x[1] = (s32)(get_pk2pk(SENSE_B))<<7;
-	//max[1]=x[1];
-	if(true_count){
-	x[1]=(x[1]*ratio+lastx[1]*(100-ratio))/100;	}
-	lastx[1]=x[1];	
-	x[7] = x[1];	
-		
-
-	while(!adc_done()){}
-	DAC_enable(DAC_B);
-	FET_gnd(FET_C);
-	reset_dma_adc(SENSE_A);
-	x[3] =(s32)(get_pk2pk(SENSE_C))<<7;
-	//max[3]=x[3];
-	if(true_count){	
-	x[3]=(x[3]*ratio+lastx[3]*(100-ratio))/100;	}
-	lastx[3]=x[3];		
-			
-		
-
-	while(!adc_done()){}
-	DAC_enable(DAC_C);
-	FET_gnd(FET_A);
-	reset_dma_adc(SENSE_B);
-	x[2] = (s32)(get_pk2pk(SENSE_A))<<7;
-	//max[2]=x[2];	
-	if(true_count){
-	x[2]=(x[2]*ratio+lastx[2]*(100-ratio))/100;	}
-	lastx[2]=x[2];	
-	
-	
-	while(!adc_done()){}
-	DAC_enable(DAC_C);
-	FET_gnd(FET_B);
-	reset_dma_adc(SENSE_A);	
-	x[4] = (s32)(get_pk2pk(SENSE_B))<<7;
-	//max[4]=x[4];	
-	if(true_count){
-	x[4]=(x[4]*ratio+lastx[4]*(100-ratio))/100;	}
-	lastx[4]=x[4];		
-
-	while(!adc_done()){}
-	x[5] = (s32)(get_pk2pk(SENSE_A))<<7;
-	//max[5]=x[5];
-	if(true_count){
-	x[5]=(x[5]*ratio+lastx[5]*(100-ratio))/100;	}
-	lastx[5]=x[5];	
-		
-	DAC_enable(DAC_DISABLE);
-	FET_gnd(NO_FET);
-	
-		
-	
-		
-/*	if(!method_flag){
-		if(x[0]>max[0]){max[0]=x[0];}
-		if(x[0]<min[0]){min[0]=x[0];}	
-		if(x[1]>max[1]){max[1]=x[1];}
-		if(x[1]<min[1]){min[1]=x[1];}	
-		if(x[3]>max[3]){max[3]=x[3];}
-		if(x[3]<min[3]){min[3]=x[3];}		
-		if(x[2]>max[2]){max[2]=x[2];}
-		if(x[2]<min[2]){min[2]=x[2];}
-		if(x[4]>max[4]){max[4]=x[4];}
-		if(x[4]<min[4]){min[4]=x[4];}		
-		if(x[5]>max[5]){max[5]=x[5];}
-		if(x[5]<min[5]){min[5]=x[5];}	
-		
-		
-	
-		x_offset[0] = offset;
-		x_offset[1] = offset;
-		x_offset[2] = offset;
-		x_offset[3] = offset;
-		x_offset[4] = offset;
-		x_offset[5] = offset;
-		
-		s16 eerr = temp - init_pos;
-		if(eerr>512){eerr-=1024;}
-		if(eerr<-512){eerr+=1024;}
-		
-		if(ABS(eerr)>73*2){
-			method_flag = true;
-		
-			x_offset[0] = (max[0]+offset+min[0])>>2;
-		  x_offset[1] = (max[1]+offset+min[1])>>2;
-		  x_offset[2] = (max[2]+offset+min[2])>>2;
-			x_offset[3] = (max[3]+offset+min[3])>>2;
-			x_offset[4] = (max[4]+offset+min[4])>>2;
-			x_offset[5] = (max[5]+offset+min[5])>>2;
-		}
-	
-	
-	}*/
 	
 
-	// Position estimation code 
-		
-	offset = (x[0]+x[1]+x[2]+x[3]+x[4]+x[5])/6;
-	
+	bemf_sense();		
+	offset = (x[0]+x[1]+x[2])/3;
+
 	x[0]-=offset;
 	x[1]-=offset;
 	x[2]-=offset;
-	x[3]-=offset;
-	x[4]-=offset;
-	x[5]-=offset;
-	x[6]-=offset;
-	x[7]-=offset;
-		
-	k = 0;
-		
-	ksin = ((x[0+k]-x[3+k])+(x[1+k]+x[5+k])-(x[2+k]+x[4+k]))>>9;
-	kcos = ((x[1+k]+x[2+k])-(x[4+k]+x[5+k]))/443;
-		
-	result[k] = app_atan2(ksin,kcos);
 	
-	bitch1[0][temp]=ksin;
-	bitch1[1][temp]=kcos;
+
+	ksin = (x[0]-x[1]-x[2])>>9;
+	kcos = (x[1]-x[2])/443;
 	
-	k++;
+	k = ((ksin*ksin+kcos*kcos)>>1)+(k>>1);
 	
-  ksin = ((x[0+k]-x[3+k])+(x[1+k]+x[5+k])-(x[2+k]+x[4+k]))>>9;
-	kcos = ((x[1+k]+x[2+k])-(x[4+k]+x[5+k]))/443;
+//	uart_tx(COM3,"%d\n",k);
 	
-	result[k] = app_atan2(ksin,kcos);
-	result[k]-= 6000;
-	if(result[k]<-18000){
-		result[k]+=36000;
-	}
+	if(k>K_THRESH){
+		position = (-app_atan2(ksin,kcos)-9000);
+			{position+=9000;}
+			position/=250;
 	
-	
-	k++;
-	
-  ksin = ((x[0+k]-x[3+k])+(x[1+k]+x[5+k])-(x[2+k]+x[4+k]))>>9;
-	kcos = ((x[1+k]+x[2+k])-(x[4+k]+x[5+k]))/443;
-		
-	result[k] = app_atan2(ksin,kcos);
-	result[k]-= 12000;
-	if(result[k]<-18000){
-		result[k]+=36000;
-	}
-	
-	
-	position = median(3,result)/500;
-	if(position<0){
-		position +=72;
-	}
-	
-	// mean filter 
-	
-	
-	if(ABS(position-last_position)>36){
-		if(position>last_position){
-			last_position+=71;
-			curr_position = ((position+last_position)>>1)%72;
+			if(position<0){position+=144;}
+			position%=144;
 			
+			s16 error_under=ABS(last_deg-position);
+			s16 error_upper=ABS(last_deg-(72+position));
+			if(error_under>72){error_under = 144-error_under;}
+			if(error_upper>72){error_upper = 144-error_upper;}
+			if(error_upper<error_under){position+=72;}	
+			
+		  if(position<0){position+=144;}
+			position%=144;
+
+			enc_cal();
+			last_deg = position;
 			last_position = position;
-		}else{
-			position+=71;
-			curr_position = ((position+last_position)>>1)%72;
-			
-			last_position = position-71;
-		}
-	
-	}else{
-		curr_position = ((position+last_position)>>1)%72;
-		
-		last_position = position;
+			true_count=1;
+			sense_method=false;
+			return;
 	}
-	position = curr_position;
-	//last_position = curr_position;
-	
-	
-	// translate to encoder 
-	
-	if(ABS(position*true_count-last_pos)>36){
-		if(position*true_count-last_pos<0){
-			enc+= position*true_count-last_pos+72;
-		}else{
-			enc+= position*true_count-last_pos-72;
-		}
-	
-	}else{
-			enc += position*true_count-last_pos;
-	}
-	last_pos = position;
-	
-	
-	// velocity 
-	enc_vel = enc-last_enc;
-	last_enc=enc;
-	if(ABS(enc_vel)<2){
-		ratio = 80;
-	}
-	if(ABS(enc_vel)>=2){
-		ratio=95;
-	}
-	
- if(ABS(enc_vel)>=4){
-		ratio=100;
-	}
-	
-	
-	for(u8 i=0;i<6;i++){
-		if(save_x[i][position]==0){
-			save_x[i][position] = (x[i]+offset);
-		}else{
-			save_x[i][position] = (((x[i]+offset))+ save_x[i][position]*9)/10;
-		}
-	}
-	
-	true_count=1;
-	//check 
-	for(u8 i=0;i<72;i++){
-		if(save_x[0][i]==0){
-			break;
-		}
-		if(i==71){
-			method_flag = true;
-			true_count=0;
-			lastx[0]=0;
-			lastx[1]=0;
-			lastx[2]=0;
-			lastx[3]=0;
-			lastx[4]=0;
-			lastx[5]=0;
-			uart_tx(COM3,"y=[");
-			for(u8 i=0;i<6;i++){
-				for(u8 j=0;j<72;j++){
-					uart_tx(COM3,"%d,",save_x[i][j]);
-					_delay_ms(5);
-				}
-				uart_tx(COM3,";");
-			}uart_tx(COM3,"];");
-			
-			while(1){}
-			
-		}
-	}
-	
-
-	
-}else{
-	
-	
-	
-	
-	
-	
-	
-	for(u8 j=0;j<6;j++){
-		x_offset[j] = 0;
-		max[j]=0;
-		min[j]= 0xffff;
-		for(u8 i=0;i<72;i++){
-			if(save_x[j][i]>max[j]){max[j]=save_x[j][i];}
-			if(save_x[j][i]<min[j]){min[j]=save_x[j][i];}
-			x_offset[j]+=save_x[j][i];
-		}
-		x_offset[j]/=72;
-	}
-	
-	
-	
-	
-	DAC_enable(DAC_A);
-	FET_gnd(FET_B);
-	reset_dma_adc(SENSE_C);
-	while(!adc_done()){}
-	DAC_enable(DAC_A);
-	FET_gnd(FET_C);
-	reset_dma_adc(SENSE_B);	
-	x[0] = (s32)(get_pk2pk(SENSE_C))<<7;
-	x[0] -=x_offset[0];
-	x[0]/=(max[0]-min[0])/10;		
-		
-
-	if(true_count){
-	x[0]=(x[0]*ratio+lastx[0]*(100-ratio))/100;	}
-	lastx[0]=x[0];	
-	x[6] = x[0];	
-		
-		
-	while(!adc_done()){}
-	DAC_enable(DAC_B);
-	FET_gnd(FET_A);
-	reset_dma_adc(SENSE_C);	
-	x[1] = (s32)(get_pk2pk(SENSE_B))<<7;
-	x[1] -=x_offset[1];
-	x[1]/=(max[1]-min[1])/10;		
-		
-		
-	
-	if(true_count){
-	x[1]=(x[1]*ratio+lastx[1]*(100-ratio))/100;	}
-	lastx[1]=x[1];	
-	x[7] = x[1];	
-		
-
-	while(!adc_done()){}
-	DAC_enable(DAC_B);
-	FET_gnd(FET_C);
-	reset_dma_adc(SENSE_A);
-	x[3] =(s32)(get_pk2pk(SENSE_C))<<7;
-	x[3] -=x_offset[3];
-	x[3]/=(max[3]-min[3])/10;		
-		
-		
-		
-		
-		
-	if(true_count){	
-	x[3]=(x[3]*ratio+lastx[3]*(100-ratio))/100;	}
-	lastx[3]=x[3];		
-			
-		
-
-	while(!adc_done()){}
-	DAC_enable(DAC_C);
-	FET_gnd(FET_A);
-	reset_dma_adc(SENSE_B);
-	x[2] = (s32)(get_pk2pk(SENSE_A))<<7;
-	x[2] -=x_offset[2];
-	x[2]/=(max[2]-min[2])/10;		
-		
-		
-	if(true_count){
-	x[2]=(x[2]*ratio+lastx[2]*(100-ratio))/100;	}
-	lastx[2]=x[2];	
-	
-	
-	while(!adc_done()){}
-	DAC_enable(DAC_C);
-	FET_gnd(FET_B);
-	reset_dma_adc(SENSE_A);	
-	x[4] = (s32)(get_pk2pk(SENSE_B))<<7;
-	x[4] -=x_offset[4];
-	x[4]/=(max[4]-min[4])/10;	
-		
-		
-		
-	if(true_count){
-	x[4]=(x[4]*ratio+lastx[4]*(100-ratio))/100;	}
-	lastx[4]=x[4];		
-
-	while(!adc_done()){}
-	x[5] = (s32)(get_pk2pk(SENSE_A))<<7;
-	x[5] -=x_offset[5];
-	x[5]/=(max[5]-min[5])/10;	
-		
-	if(true_count){
-	x[5]=(x[5]*ratio+lastx[5]*(100-ratio))/100;	}
-	lastx[5]=x[5];	
-		
-	DAC_enable(DAC_DISABLE);
-	FET_gnd(NO_FET);
-	
-	
-
-	k = 0;
-		
-	ksin = ((x[0+k]-x[3+k])+(x[1+k]+x[5+k])-(x[2+k]+x[4+k]))>>6;
-	kcos = ((x[1+k]+x[2+k])-(x[4+k]+x[5+k]))/55;
-		
-	result[k] = app_atan2(ksin,kcos);
-	
-	//bitch1[0][temp]=ksin;
-	//bitch1[1][temp]=kcos;
-	
-	k++;
-	
-  ksin = ((x[0+k]-x[3+k])+(x[1+k]+x[5+k])-(x[2+k]+x[4+k]))>>6;
-	kcos = ((x[1+k]+x[2+k])-(x[4+k]+x[5+k]))/55;
-	
-	result[k] = app_atan2(ksin,kcos);
-	result[k]-= 6000;
-	if(result[k]<-18000){
-		result[k]+=36000;
-	}
-	
-	
-	k++;
-	
-  ksin = ((x[0+k]-x[3+k])+(x[1+k]+x[5+k])-(x[2+k]+x[4+k]))>>6;
-	kcos = ((x[1+k]+x[2+k])-(x[4+k]+x[5+k]))/55;
-		
-	result[k] = app_atan2(ksin,kcos);
-	result[k]-= 12000;
-	if(result[k]<-18000){
-		result[k]+=36000;
-	}
-	
-	
-	position = median(3,result)/500;
-	if(position<0){
-		position +=72;
-	}
-	
-	// mean filter 
-	
-	
-	if(ABS(position-last_position)>36){
-		if(position>last_position){
-			last_position+=71;
-			curr_position = ((position+last_position)>>1)%72;
-			
-			last_position = position;
-		}else{
-			position+=71;
-			curr_position = ((position+last_position)>>1)%72;
-			
-			last_position = position-71;
-		}
-	
-	}else{
-		curr_position = ((position+last_position)>>1)%72;
-		
-		last_position = position;
-	}
-	position = curr_position;
-	//last_position = curr_position;
-	
-	
-	// translate to encoder 
-	
-	if(ABS(position*true_count-last_pos)>36){
-		if(position*true_count-last_pos<0){
-			enc+= position*true_count-last_pos+72;
-		}else{
-			enc+= position*true_count-last_pos-72;
-		}
-	
-	}else{
-			enc += position*true_count-last_pos;
-	}
-	last_pos = position;
-	
-	
-	// velocity 
-	enc_vel = enc-last_enc;
-	last_enc=enc;
-	if(ABS(enc_vel)<2){
-		ratio = 80;
-	}
-	if(ABS(enc_vel)>=2){
-		ratio=95;
-	}
-	
- if(ABS(enc_vel)>=4){
-		ratio=100;
-	}
-
-	
-	
-	for(u8 i=0;i<6;i++){
-			save_x[i][position] = ((x[i]*10/(max[i]-min[i]))+x_offset[i]+ save_x[i][position]*9)/10;
-	}
-	
-
-	true_count=1;
-
+	if(sense_method){pos_update_induc();}
+	sense_method=true;
 }
 
-	position = (position*73/72)+36;
-	if(position<0){position+=72;}
-			
-		
-}
-
-
-void pos_update(void){
-	u16 temp = get_abs();
-	
-	DAC_enable(DAC_A);
-	FET_gnd(FET_B);
-	reset_dma_adc(SENSE_C);
-	while(!adc_done()){}
-	DAC_enable(DAC_A);
-	FET_gnd(FET_C);
-	reset_dma_adc(SENSE_B);	
-	x[0] = (s32)(get_pk2pk(SENSE_C))<<7;
-		
-	max[0]=x[0];
-	if(true_count){
-	x[0]=(x[0]*ratio+lastx[0]*(100-ratio))/100;	}
-	lastx[0]=x[0];	
-	x[6] = x[0];	
-		
-		
-	while(!adc_done()){}
-	DAC_enable(DAC_B);
-	FET_gnd(FET_A);
-	reset_dma_adc(SENSE_C);	
-	x[1] = (s32)(get_pk2pk(SENSE_B))<<7;
-	max[1]=x[1];
-	if(true_count){
-	x[1]=(x[1]*ratio+lastx[1]*(100-ratio))/100;	}
-	lastx[1]=x[1];	
-	x[7] = x[1];	
-		
-
-	while(!adc_done()){}
-	DAC_enable(DAC_B);
-	FET_gnd(FET_C);
-	reset_dma_adc(SENSE_A);
-	x[3] =(s32)(get_pk2pk(SENSE_C))<<7;
-	max[3]=x[3];
-	if(true_count){	
-	x[3]=(x[3]*ratio+lastx[3]*(100-ratio))/100;	}
-	lastx[3]=x[3];		
-			
-		
-
-	while(!adc_done()){}
-	DAC_enable(DAC_C);
-	FET_gnd(FET_A);
-	reset_dma_adc(SENSE_B);
-	x[2] = (s32)(get_pk2pk(SENSE_A))<<7;
-	max[2]=x[2];	
-	if(true_count){
-	x[2]=(x[2]*ratio+lastx[2]*(100-ratio))/100;	}
-	lastx[2]=x[2];	
-	
-	
-	while(!adc_done()){}
-	DAC_enable(DAC_C);
-	FET_gnd(FET_B);
-	reset_dma_adc(SENSE_A);	
-	x[4] = (s32)(get_pk2pk(SENSE_B))<<7;
-	max[4]=x[4];	
-	if(true_count){
-	x[4]=(x[4]*ratio+lastx[4]*(100-ratio))/100;	}
-	lastx[4]=x[4];		
-
-	while(!adc_done()){}
-	x[5] = (s32)(get_pk2pk(SENSE_A))<<7;
-	max[5]=x[5];
-	if(true_count){
-	x[5]=(x[5]*ratio+lastx[5]*(100-ratio))/100;	}
-	lastx[5]=x[5];	
-		
-	DAC_enable(DAC_DISABLE);
-	FET_gnd(NO_FET);
-	
-		
-	
-		
-/*	if(!method_flag){
-		if(x[0]>max[0]){max[0]=x[0];}
-		if(x[0]<min[0]){min[0]=x[0];}	
-		if(x[1]>max[1]){max[1]=x[1];}
-		if(x[1]<min[1]){min[1]=x[1];}	
-		if(x[3]>max[3]){max[3]=x[3];}
-		if(x[3]<min[3]){min[3]=x[3];}		
-		if(x[2]>max[2]){max[2]=x[2];}
-		if(x[2]<min[2]){min[2]=x[2];}
-		if(x[4]>max[4]){max[4]=x[4];}
-		if(x[4]<min[4]){min[4]=x[4];}		
-		if(x[5]>max[5]){max[5]=x[5];}
-		if(x[5]<min[5]){min[5]=x[5];}	
-		
-		
-	
-		x_offset[0] = offset;
-		x_offset[1] = offset;
-		x_offset[2] = offset;
-		x_offset[3] = offset;
-		x_offset[4] = offset;
-		x_offset[5] = offset;
-		
-		s16 eerr = temp - init_pos;
-		if(eerr>512){eerr-=1024;}
-		if(eerr<-512){eerr+=1024;}
-		
-		if(ABS(eerr)>73*2){
-			method_flag = true;
-		
-			x_offset[0] = (max[0]+offset+min[0])>>2;
-		  x_offset[1] = (max[1]+offset+min[1])>>2;
-		  x_offset[2] = (max[2]+offset+min[2])>>2;
-			x_offset[3] = (max[3]+offset+min[3])>>2;
-			x_offset[4] = (max[4]+offset+min[4])>>2;
-			x_offset[5] = (max[5]+offset+min[5])>>2;
-		}
-	
-	
-	}*/
-	
-
-	// Position estimation code 
-		
-	offset = (x[0]+x[1]+x[2]+x[3]+x[4]+x[5])/6;
-	
-	x[0]-=offset;
-	x[1]-=offset;
-	x[2]-=offset;
-	x[3]-=offset;
-	x[4]-=offset;
-	x[5]-=offset;
-	x[6]-=offset;
-	x[7]-=offset;
-		
-	k = 0;
-		
-	ksin = ((x[0+k]-x[3+k])+(x[1+k]+x[5+k])-(x[2+k]+x[4+k]))>>9;
-	kcos = ((x[1+k]+x[2+k])-(x[4+k]+x[5+k]))/443;
-		
-	result[k] = app_atan2(ksin,kcos);
-	
-	bitch1[0][temp]=ksin;
-	bitch1[1][temp]=kcos;
-	
-	k++;
-	
-  ksin = ((x[0+k]-x[3+k])+(x[1+k]+x[5+k])-(x[2+k]+x[4+k]))>>9;
-	kcos = ((x[1+k]+x[2+k])-(x[4+k]+x[5+k]))/443;
-	
-	result[k] = app_atan2(ksin,kcos);
-	result[k]-= 6000;
-	if(result[k]<-18000){
-		result[k]+=36000;
-	}
-	
-	
-	k++;
-	
-  ksin = ((x[0+k]-x[3+k])+(x[1+k]+x[5+k])-(x[2+k]+x[4+k]))>>9;
-	kcos = ((x[1+k]+x[2+k])-(x[4+k]+x[5+k]))/443;
-		
-	result[k] = app_atan2(ksin,kcos);
-	result[k]-= 12000;
-	if(result[k]<-18000){
-		result[k]+=36000;
-	}
-	
-	
-	position = median(3,result)/500;
-	if(position<0){
-		position +=72;
-	}
-	
-	// mean filter 
-	
-	
-	if(ABS(position-last_position)>36){
-		if(position>last_position){
-			last_position+=71;
-			curr_position = ((position+last_position)>>1)%72;
-			
-			last_position = position;
-		}else{
-			position+=71;
-			curr_position = ((position+last_position)>>1)%72;
-			
-			last_position = position-71;
-		}
-	
-	}else{
-		curr_position = ((position+last_position)>>1)%72;
-		
-		last_position = position;
-	}
-	position = curr_position;
-	//last_position = curr_position;
-	
-	
-	// translate to encoder 
-	
-	if(ABS(position*true_count-last_pos)>36){
-		if(position*true_count-last_pos<0){
-			enc+= position*true_count-last_pos+72;
-		}else{
-			enc+= position*true_count-last_pos-72;
-		}
-	
-	}else{
-			enc += position*true_count-last_pos;
-	}
-	last_pos = position;
-	
-	
-	// velocity 
-	enc_vel = enc-last_enc;
-	last_enc=enc;
-	if(ABS(enc_vel)<2){
-		ratio = 80;
-	}	
-	if(ABS(enc_vel)>=2){
-		ratio=95;
-	}
-	
- if(ABS(enc_vel)>=4){
-		ratio=100;
-	}
-	
-	
-
-	
-	
-	
-	
-	
-	// error calculation 
-	position = (position*73/72)+36;
-	if(position<0){position+=72;}
-	
-
-	s16 temp1 = position-temp%73;
-	if(temp1<-35){temp1+=72;}
-	if(temp1>35){temp1-=72;}
-	
-	
-/*	if(temp == 140){
-		bitch[bitch_index++] = temp1;
-		if(bitch_index>1023){
-			bitch_index=1023;
-		}
-	}*/
-	
-	bitch[temp] = temp1;//(temp1*4+last_error*6)/10;
-	//last_error = temp1;
-	true_count=1;
-/*	if(ABS(position-50)>20){
-		uart_tx(COM3,"%d\n",max[0]);
-		uart_tx(COM3,"%d\n",max[1]);
-		uart_tx(COM3,"%d\n",max[2]);
-		uart_tx(COM3,"%d\n",max[3]);
-		uart_tx(COM3,"%d\n",max[4]);
-		uart_tx(COM3,"%d\n\n",max[5]);
-		uart_tx(COM3,"%d %d %d\n",result[0],result[1],result[2]);
-		while(1){}
-	
-	}*/
-	
-}
 
 
 void uart_bitch(void){
@@ -1378,94 +623,14 @@ s32 get_enc(void){
 
 
 
-
-void position_update(void){
-	
-	
-	u16 temp = (get_abs()+93)%146;
-	
-	if(sense_method){
-		// high frequency injection
-	
-		pos_update4();
-	
-	
-	}else{
-		// BEMF
-		pos_update_bemf();
-	
-	}
-	if(last_sense==sense_method){
-		vel_buffer[vel_count++%VEL_BUFFER] = enc_vel;
-		mean_vel = 0;
-		for (u8 i=0;i<VEL_BUFFER;i++){
-		mean_vel +=vel_buffer[i];
-		}
-		mean_vel*=100;
-		mean_vel/=VEL_BUFFER;
-	}else{
-		last_sense=sense_method;
-	}
-	
-
-	if(sense_count++>VEL_BUFFER){
-		if(ABS(mean_vel)<SENSE_VEL&&!sense_method){
-				sense_method = true;
-				last_position=last_deg%72;
-			  sense_count=0;
-		}
-		if(ABS(mean_vel)>=SENSE_VEL&&sense_method){
-				sense_method = false;
-			if(mean_vel>0){
-				positive=true;
-			}else{
-				positive = false;
-			}
-			
-			
-			 sense_count=0;
-		}
-		
-	}
-	vel = temp-last;
-	if(vel>512){
-		vel-=1024;
-	}
-	if(vel<-512){
-		vel+=1024;
-	}
-/*	error = ABS(position-temp);
-	if(error>72){error=144-error;}
-	if(error>30){
-		uart_tx(COM3,"error: %d\n",error);
-		_delay_ms(10);
-		uart_tx(COM3,"mea_pos: %d\n",position);
-		_delay_ms(10);
-		uart_tx(COM3,"ide_pos: %d\n",temp);
-		_delay_ms(10);
-		uart_tx(COM3,"Mode:%d\n",sense_method);
-		_delay_ms(10);
-		uart_tx(COM3,"Mean Velocity: %d\n",mean_vel);
-		_delay_ms(10);
-		uart_tx(COM3,"velcoity: %d\n",enc_vel);
-		_delay_ms(10);
-		uart_tx(COM3,"ideal velocity:%d \n",vel);
-		_delay_ms(10);
-		
-		for(u8 i=0;i<VEL_BUFFER;i++){
-			uart_tx(COM3," %d ",vel_buffer[i]);
-			_delay_ms(5);
-		
-		}
-		
-		
-		while(1){
-		}
-	}*/
-
-	last = temp;
-	
+u32 get_read(u8 index){
+	return read.n[index]>>6;
 }
+
+u32 get_induc(u8 index){
+	return x_vec[0].n[index];
+}
+
 
 bool get_method(void){
 	return sense_method;

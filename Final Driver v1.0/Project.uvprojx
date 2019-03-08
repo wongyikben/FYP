@@ -743,6 +743,16 @@
               <FileType>1</FileType>
               <FilePath>.\core\vec.c</FilePath>
             </File>
+            <File>
+              <FileName>CurrentSensing.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\CurrentSensing.c</FilePath>
+            </File>
+            <File>
+              <FileName>CurrentSensing.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\CurrentSensing.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -1571,6 +1581,16 @@
               <FileName>vec.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\core\vec.c</FilePath>
+            </File>
+            <File>
+              <FileName>CurrentSensing.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\CurrentSensing.c</FilePath>
+            </File>
+            <File>
+              <FileName>CurrentSensing.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\CurrentSensing.h</FilePath>
             </File>
           </Files>
         </Group>
@@ -2401,6 +2421,16 @@
               <FileName>vec.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\core\vec.c</FilePath>
+            </File>
+            <File>
+              <FileName>CurrentSensing.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\CurrentSensing.c</FilePath>
+            </File>
+            <File>
+              <FileName>CurrentSensing.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\CurrentSensing.h</FilePath>
             </File>
           </Files>
         </Group>
@@ -3281,6 +3311,16 @@
               <FileType>1</FileType>
               <FilePath>.\core\vec.c</FilePath>
             </File>
+            <File>
+              <FileName>CurrentSensing.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\CurrentSensing.c</FilePath>
+            </File>
+            <File>
+              <FileName>CurrentSensing.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\CurrentSensing.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -4109,6 +4149,16 @@
               <FileName>vec.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\core\vec.c</FilePath>
+            </File>
+            <File>
+              <FileName>CurrentSensing.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\CurrentSensing.c</FilePath>
+            </File>
+            <File>
+              <FileName>CurrentSensing.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\CurrentSensing.h</FilePath>
             </File>
           </Files>
         </Group>
@@ -4939,6 +4989,16 @@
               <FileType>1</FileType>
               <FilePath>.\core\vec.c</FilePath>
             </File>
+            <File>
+              <FileName>CurrentSensing.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\CurrentSensing.c</FilePath>
+            </File>
+            <File>
+              <FileName>CurrentSensing.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\CurrentSensing.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -5768,6 +5828,16 @@
               <FileType>1</FileType>
               <FilePath>.\core\vec.c</FilePath>
             </File>
+            <File>
+              <FileName>CurrentSensing.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\CurrentSensing.c</FilePath>
+            </File>
+            <File>
+              <FileName>CurrentSensing.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\CurrentSensing.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -6596,6 +6666,16 @@
               <FileName>vec.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\core\vec.c</FilePath>
+            </File>
+            <File>
+              <FileName>CurrentSensing.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\CurrentSensing.c</FilePath>
+            </File>
+            <File>
+              <FileName>CurrentSensing.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\CurrentSensing.h</FilePath>
             </File>
           </Files>
         </Group>

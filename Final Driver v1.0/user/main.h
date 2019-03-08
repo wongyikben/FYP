@@ -23,10 +23,10 @@
 #include "approx_math.h"
 #include "macro_math.h"
 #include "trigon_math.h"
-
+#include "../CurrentSensing.h"
 #include "timer.h"
 
-//#include "../dac.h"
+#include "../dac.h"
 #include "../absEnc.h"
 #include "pos_esti.h"
 
