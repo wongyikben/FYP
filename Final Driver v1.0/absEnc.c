@@ -30,4 +30,9 @@ u16 gray2bin(u16 gray){
 
 u16 get_abs(){
 	return gray2bin(~(GPIOB->IDR)&0x03FF);
+	
+}
+
+u16 get_abs_angle(){
+return ((73-((get_abs()+31)%73))%73); //Ben 31 Andy 66
 }

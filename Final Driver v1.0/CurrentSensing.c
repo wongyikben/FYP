@@ -7,6 +7,8 @@ u8 init_count = 0;
 ADC_InitTypeDef ADC_InitStructure;
 DMA_InitTypeDef DMA_InitStructure; 
 
+u32 zero_mean[3] = {0};
+
 
 void current_sensing_init(){
 	
@@ -72,6 +74,7 @@ void current_sensing_init(){
 		
 		DMA2_Stream0->CR &= ~(uint32_t)DMA_SxCR_EN;
 		ADC1->CR2 &= (uint32_t)(~(ADC_CR2_DDS|ADC_CR2_DMA|ADC_CR2_ADON));
+		ADC1->CR2 &= (uint32_t)(~ADC_CR2_SWSTART);
 		
 	//ADC init
 		ADC_DeInit();
@@ -86,7 +89,7 @@ void current_sensing_init(){
 		DMA_Init(DMA2_Stream1, &DMA_InitStructure);
 		
 		//DMA_Cmd(DMA2_Stream1, ENABLE);
-		//ADC_DMARequestAfterLastTransferCmd(ADC3, ENABLE);
+		///ADC_DMARequestAfterLastTransferCmd(ADC3, ENABLE);
 		//ADC_DMACmd(ADC3, ENABLE);
 		//ADC_Cmd(ADC3, ENABLE);
 		//ADC_SoftwareStartConv(ADC3);
@@ -95,43 +98,45 @@ void current_sensing_init(){
 		ADC3->CR2 |= (uint32_t)(ADC_CR2_DDS|ADC_CR2_DMA|ADC_CR2_ADON|ADC_CR2_SWSTART);
 		ADC3->CR2 |= (uint32_t)ADC_CR2_SWSTART;
 }
-void cal_zero_mean(u32* zeromean){
-			u16 count = 0;
+void cal_zero_mean(void){
+	u16 count = 0;
 	for(s16 i=-4000;i<8000;){
 		if(last_adc_current_reading[0]!= adc_current_reading[0] && last_adc_current_reading[1]!= adc_current_reading[1] && last_adc_current_reading[2]!= adc_current_reading[2]){
 				last_adc_current_reading[0] = adc_current_reading[0];
 				last_adc_current_reading[1] = adc_current_reading[1];
 				last_adc_current_reading[2] = adc_current_reading[2];
 			if(i>=0){
-				zeromean[0] += adc_current_reading[0];
-				zeromean[1] += adc_current_reading[1];
-				zeromean[2] += adc_current_reading[2];
+				zero_mean[0] += adc_current_reading[0];
+				zero_mean[1] += adc_current_reading[1];
+				zero_mean[2] += adc_current_reading[2];
 				++count;
 			}
 			++i;
 		}
 	}
-		zeromean[0] /= 8000;
-		zeromean[1] /= 8000;
-		zeromean[2] /= 8000;
+		zero_mean[0] /= 8000;
+		zero_mean[1] /= 8000;
+		zero_mean[2] /= 8000;
+	
+	print_zero_mean();
 		
 }
 
 static s16 current_1000[3] = {0};								//-20000 ~ 20000	//store the current data *1000
-void current_1000_update(u32* zeromean){
+void current_1000_update(){
 	//Phase A
-		current_1000[0] = adc_current_reading[0] - (s16)(zeromean[0]);//*18.493;
+		current_1000[0] = adc_current_reading[0] - (s16)(zero_mean[0]);//*18.493;
 
 	//Phase B
-		current_1000[1] = adc_current_reading[1] - (s16)(zeromean[1]);//*18.493;
+		current_1000[1] = adc_current_reading[1] - (s16)(zero_mean[1]);//*18.493;
 		
 	//Phase C
-		current_1000[2] = adc_current_reading[2] - (s16)(zeromean[2]);//*18.493;
+		current_1000[2] = adc_current_reading[2] - (s16)(zero_mean[2]);//*18.493;
 	
 }
 
 s16 get_instant_current_A(void){
-	return adc_current_reading[0];
+	return current_1000[0];
 }
 
 s16 get_instant_current_B(void){
@@ -142,11 +147,11 @@ s16 get_instant_current_C(void){
 	return current_1000[2];
 }
 
-void print_zero_mean(u32* zeromean){
-	uart_tx_blocking(COM3, "\n%d %d %d\n\n", zeromean[0], zeromean[1], zeromean[2]);
+void print_zero_mean(){
+	uart_tx_blocking(COM3, "%% %d %d %d\n\n", zero_mean[0], zero_mean[1], zero_mean[2]);
 }
 
-void abc_to_dq(u16 elec_angle, s32* a, s32* b, s32* c, s32* d, s32* q){
+void abc_to_dq(u16 elec_angle, s16* a, s16* b, s16* c, s16* d, s16* q){
 	s32 cos = app_cos(elec_angle*100);		//scaled by 32768
 	s32 sin = app_sin(elec_angle*100);		//scaled by 32768
 	
@@ -164,7 +169,7 @@ void abc_to_dq(u16 elec_angle, s32* a, s32* b, s32* c, s32* d, s32* q){
 	
 }
 
-void dq_to_abc(u16 elec_angle, s32* a, s32* b, s32* c, s32* d, s32* q){
+void dq_to_abc(u16 elec_angle, s16* a, s16* b, s16* c, s16* d, s16* q){
 	s32 cos = app_cos(elec_angle*100);		//scaled by 32768
 	s32 sin = app_sin(elec_angle*100);		//scaled by 32768
 	
@@ -180,5 +185,3 @@ void dq_to_abc(u16 elec_angle, s32* a, s32* b, s32* c, s32* d, s32* q){
 	*c = ( (-sin577-cos333)*(*d) + ( sin333-cos577)*(*q) )/1000;
 	
 }
-
-

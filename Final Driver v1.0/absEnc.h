@@ -10,4 +10,6 @@ u16 get_abs(void);
 
 u16 gray2bin(u16 gray);
 
+u16 get_abs_angle(void);
+
 #endif

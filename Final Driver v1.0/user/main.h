@@ -29,6 +29,7 @@
 #include "../dac.h"
 #include "../absEnc.h"
 #include "pos_esti.h"
+#include "../PWM.h"
 
 
 	

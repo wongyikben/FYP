@@ -34,7 +34,7 @@ count=0;
 
 error = a-b;
 
-vara = 146;
+vara = 72;
 
 for i=1:length(error)
    if error(i)>vara/2
@@ -54,4 +54,5 @@ A = sort(error);
 min_error=[A(20) A(20)*360/1024 (A(20)*360*7/1024)]
 max_error=[A(length(y)-10) A(length(y)-10)*360/1024 (A(length(y)-10)*7*360/1024)]
 error=[rms((error)) rms((error))*360/1024 (rms((error))*360*7/1024)]
+
 

@@ -19,6 +19,55 @@ u16 ADC_MEAN[3]={0};
 s16 HIF_BEMF[3]={0};
 
 
+s16 fil_array[3][10]={0};
+u32 Gau[10]={10,99,96,91,85,77,69,61,52,44};
+u32 sum_gau = 774;
+u32 gau_count[3]={0};
+
+
+s16 bemf_array[3][8]={0};
+u32 Gaub[8]={100,92,71,46,25,11,4,1};
+u32 sum_gaub = 350;
+u32 gaub_count[3]={0};
+
+
+
+u16 Gaussian_filter(s16 input,u8 channel){
+	u32 result = 0;
+	fil_array[channel][gau_count[channel]%10] = input;
+	for(u8 i=0;i<10;i++){
+		result += Gau[i]*fil_array[channel][(gau_count[channel]-i)%10];
+	}
+	gau_count[channel]++;
+	
+	if(gau_count[channel]<10){
+		return input;
+	}
+	
+	return (u16)(result/sum_gau);
+
+}
+
+u16 Gaubian_filter(s16 input,u8 channel){
+	u32 result = 0;
+	bemf_array[channel][gaub_count[channel]%8] = input;
+	for(u8 i=0;i<8;i++){
+		result += Gaub[i]*bemf_array[channel][(gaub_count[channel]-i)%8];
+	}
+	gaub_count[channel]++;
+	
+	if(gaub_count[channel]<8){
+		return input;
+	}
+	
+	return (u16)(result/sum_gaub);
+
+}
+
+
+
+
+
 void DMA2_Stream0_IRQHandler(void) { //ADC DMA interrupt handler
 	 DMA_ClearITPendingBit(DMA2_Stream0, DMA_IT_TEIF0 | DMA_IT_DMEIF0 | DMA_IT_FEIF0 | DMA_IT_TCIF0 | DMA_IT_HTIF0);
 	 flag=0;
@@ -30,12 +79,15 @@ void adc_gpio_init(void){
 	GPIO_InitTypeDef GPIO_InitStructure;
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
 	GPIO_StructInit(&GPIO_InitStructure);
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0|GPIO_Pin_1|GPIO_Pin_2;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0|GPIO_Pin_1|GPIO_Pin_2|GPIO_Pin_5|GPIO_Pin_6|GPIO_Pin_7;
 	GPIO_InitStructure.GPIO_Speed = GPIO_High_Speed;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
 	GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
+	
+	
+	
 
 }
 
@@ -61,7 +113,7 @@ void adc_bemf_init(u8 input){
 	ADC2->CR2 &= (uint32_t)(~(ADC_CR2_DDS|ADC_CR2_DMA|ADC_CR2_ADON));
 	
 	ADC_DeInit();
-	ADC_RegularChannelConfig(ADC1, input , 1, ADC_SampleTime_3Cycles); // here to change the reading pin
+	ADC_RegularChannelConfig(ADC1, 5+input , 1, ADC_SampleTime_3Cycles); // here to change the reading pin
 	ADC_Init(ADC1, &ADC_InitStru);
 	// specific for adc initi
 	DMA_InitStru.DMA_Memory0BaseAddr = (uint32_t) &(ADC_buffer[input]);
@@ -86,7 +138,8 @@ void adc_dma_init(u8 input){
 	
 	
 	DMA2_Stream1->CR &= ~(uint32_t)DMA_SxCR_EN;
-	ADC2->CR2 &= (uint32_t)(~(ADC_CR2_DDS|ADC_CR2_DMA|ADC_CR2_ADON));
+	ADC3->CR2 &= (uint32_t)(~(ADC_CR2_DDS|ADC_CR2_DMA|ADC_CR2_ADON));
+	ADC3->CR2 &= (uint32_t)(~ADC_CR2_SWSTART);
 	//ADC2->CR2 &= (uint32_t)(~ADC_CR2_DMA);
 	//ADC2->CR2 &= (uint32_t)(~ADC_CR2_ADON);
 	
@@ -229,12 +282,12 @@ s32 median(u8 n, s32* x) {
 
 void pk2pk2(u8 input){
 	
-/*		uart_tx(COM3,"wave=[");
+		/*uart_tx(COM3,"wave=[");
 			for (u8 i=0;i<sense_buffer;i++){
 		uart_tx(COM3,"%d,",ADC_buffer[input][i]);
 		_delay_ms(1);
 	}
-			uart_tx(COM3,"];\n");*/
+	uart_tx(COM3,"];plot(wave(2:%d))\n",sense_buffer);*/
 	
 	
 	
@@ -275,8 +328,10 @@ void pk2pk2(u8 input){
 	peak2[1]/=peak_num[1];
 	
 
-	peak_to_peak[input] = ((peak2[1]-peak2[0])*SAM_F*100)/(get_freq()*8*314);
-	HIF_BEMF[input] = sense_buffer*(peak2[1]+peak2[0])/8;
+	//peak_to_peak[input] = ((peak2[1]-peak2[0])*SAM_F*100)/(get_freq()*8*314);
+	peak_to_peak[input] = ((peak2[1]-peak2[0]))>>2;
+	peak_to_peak[input]=Gaussian_filter(peak_to_peak[input],input);
+	//HIF_BEMF[input] = sense_buffer*(peak2[1]+peak2[0])/8;
 	
 /*	if (diu==1&&input==0){
 		uart_tx(COM3,"%d,",peak_to_peak[input]);
@@ -286,7 +341,8 @@ void pk2pk2(u8 input){
 
 
 void bemf(u8 input){
-	peak_to_peak[input] =((ADC_buffer[input][1]+ADC_buffer[input][2])>>1)-ADC_MEAN[input];
+	peak_to_peak[input] =((ADC_buffer[input][1]+ADC_buffer[input][2])>>1);//-ADC_MEAN[input];
+	peak_to_peak[input]=Gaubian_filter(peak_to_peak[input],input);
 }
 
 
@@ -401,7 +457,7 @@ void uart_reading(void){
 
 
 void ADC_midpt_cal(u8 input){
-	reset_dma_adc(input);
+	reset_dma_adc(10+input);
 	while(!adc_done()){}
 		
 	u32 mean = 0;
@@ -411,6 +467,17 @@ void ADC_midpt_cal(u8 input){
 	mean/=sense_buffer;
 	ADC_MEAN[input] = mean;
 
-//	uart_tx(COM3,"%d \n",mean);
+	//uart_tx(COM3,"%d \n",mean);
 }
+
+
+void reset_filter_count(void){
+	gau_count[0]=0;
+	gau_count[1]=0;
+	gau_count[2]=0;
+
+}
+
+
+
 

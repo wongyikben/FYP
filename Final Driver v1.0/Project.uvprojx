@@ -753,6 +753,16 @@
               <FileType>5</FileType>
               <FilePath>.\CurrentSensing.h</FilePath>
             </File>
+            <File>
+              <FileName>PWM.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\PWM.h</FilePath>
+            </File>
+            <File>
+              <FileName>PWM.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\PWM.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -1592,6 +1602,16 @@
               <FileType>5</FileType>
               <FilePath>.\CurrentSensing.h</FilePath>
             </File>
+            <File>
+              <FileName>PWM.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\PWM.h</FilePath>
+            </File>
+            <File>
+              <FileName>PWM.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\PWM.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -1759,7 +1779,7 @@
           <AfterMake>
             <RunUserProg1>0</RunUserProg1>
             <RunUserProg2>0</RunUserProg2>
-            <UserProg1Name></UserProg1Name>
+            <UserProg1Name>"C:\Program Files (x86)\STMicroelectronics\STM32 ST-LINK Utility\ST-LINK Utility\ST-LINK_CLI.exe"</UserProg1Name>
             <UserProg2Name></UserProg2Name>
             <UserProg1Dos16Mode>0</UserProg1Dos16Mode>
             <UserProg2Dos16Mode>0</UserProg2Dos16Mode>
@@ -2431,6 +2451,16 @@
               <FileName>CurrentSensing.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\CurrentSensing.h</FilePath>
+            </File>
+            <File>
+              <FileName>PWM.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\PWM.h</FilePath>
+            </File>
+            <File>
+              <FileName>PWM.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\PWM.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -3321,6 +3351,16 @@
               <FileType>5</FileType>
               <FilePath>.\CurrentSensing.h</FilePath>
             </File>
+            <File>
+              <FileName>PWM.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\PWM.h</FilePath>
+            </File>
+            <File>
+              <FileName>PWM.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\PWM.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -4159,6 +4199,16 @@
               <FileName>CurrentSensing.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\CurrentSensing.h</FilePath>
+            </File>
+            <File>
+              <FileName>PWM.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\PWM.h</FilePath>
+            </File>
+            <File>
+              <FileName>PWM.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\PWM.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -4999,6 +5049,16 @@
               <FileType>5</FileType>
               <FilePath>.\CurrentSensing.h</FilePath>
             </File>
+            <File>
+              <FileName>PWM.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\PWM.h</FilePath>
+            </File>
+            <File>
+              <FileName>PWM.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\PWM.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -5838,6 +5898,16 @@
               <FileType>5</FileType>
               <FilePath>.\CurrentSensing.h</FilePath>
             </File>
+            <File>
+              <FileName>PWM.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\PWM.h</FilePath>
+            </File>
+            <File>
+              <FileName>PWM.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\PWM.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -6676,6 +6746,16 @@
               <FileName>CurrentSensing.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\CurrentSensing.h</FilePath>
+            </File>
+            <File>
+              <FileName>PWM.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\PWM.h</FilePath>
+            </File>
+            <File>
+              <FileName>PWM.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\PWM.c</FilePath>
             </File>
           </Files>
         </Group>

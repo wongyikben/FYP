@@ -39,7 +39,7 @@ bool adc_done(void);
 
 s32 median(u8 n, s32* x);
 
-
+void reset_filter_count(void);
 
 
 

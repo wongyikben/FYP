@@ -8,10 +8,7 @@
 #include "stm32f4xx_rcc.h"
 #include "stdbool.h"
 
-#define MODE_10 0x10
-#define MODE_100 0x20
-#define MODE_1K 0x40
-#define ALL_DISABLE 0xFF
+
 
 #define FET_A 	0x04
 #define FET_B 	0x02
@@ -19,9 +16,14 @@
 
 #define NO_FET 	0x00
 
+#define ALL_DISABLE  0x0000
+#define DAC_A 			 0x0008
+#define DAC_B 			 0x0010
+#define DAC_C        0x0020
 
 
-enum DAC_Enable{DAC_DISABLE=0,DAC_A,DAC_B,DAC_C};
+
+
 
 
 
@@ -46,6 +48,20 @@ u32 get_voltage(void);
 void FET_GPIO_init(void);
 
 void FET_gnd(u16 input);
+
+void diode_gnd(u8 input);
+
+void diode_init(void);
+
+void HFI_init(void);
+
+void BEMF_init(void);
+
+void Scale_init(void);
+
+void BEMF_read(u8 input);
+
+void HFI_read(u8 input);
 
 u16 get_freq(void);
 

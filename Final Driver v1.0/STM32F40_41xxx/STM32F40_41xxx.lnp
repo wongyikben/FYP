@@ -65,6 +65,7 @@
 "stm32f40_41xxx\pos_esti.o"
 "stm32f40_41xxx\vec.o"
 "stm32f40_41xxx\currentsensing.o"
+"stm32f40_41xxx\pwm.o"
 "stm32f40_41xxx\button.o"
 "stm32f40_41xxx\buzzer.o"
 "stm32f40_41xxx\can_motor.o"

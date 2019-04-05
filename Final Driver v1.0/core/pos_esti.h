@@ -7,6 +7,8 @@
 // Debug Function 
 void pos_update_induc(void);
 
+void bemf_test(void);
+
 void pos_update_bemf(void);
 
 void uart_bitch(void);
@@ -21,6 +23,7 @@ u32 get_read(u8 index);
 
 u32 get_induc(u8 index);
 
+s16 get_bemf_read(u8 index);
 
 // User Function
 
