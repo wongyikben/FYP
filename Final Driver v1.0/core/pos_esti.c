@@ -11,8 +11,8 @@
 
 #define DELAY 7
 #define BEMF_DELAY 1
-#define K_THRESH 0
-#define k_thresh 0
+#define K_THRESH 4000
+#define k_thresh 5000
 
 
 s32 position = 0;
@@ -125,41 +125,37 @@ void enc_cal(void){
 
 void induc_sense(void){
 
+		
+	diode_gnd(1); // 1 break
+	HFI_read(1); // 1->read '
 	
 	DAC_enable(DAC_C);
 	FET_gnd(FET_A);
 	_delay_us(DELAY);	
-	reset_dma_adc(SENSE_B);
+	reset_dma_adc(SENSE_B,0);
 	while(!adc_done()){}
-	
-	
-	
+
+		
+		
 	DAC_enable(DAC_A);
-	FET_gnd(NO_FET);
-	_delay_us(DELAY);
 	FET_gnd(FET_B);
 	_delay_us(DELAY);
-  reset_dma_adc(SENSE_C);
-	
-	
+  reset_dma_adc(SENSE_C,1);
 	while(!adc_done()){}
 
 	DAC_enable(DAC_B);
-	FET_gnd(NO_FET);
-	_delay_us(DELAY);	
 	FET_gnd(FET_C);
 	_delay_us(DELAY);	
-	reset_dma_adc(SENSE_A);
+	reset_dma_adc(SENSE_A,1);
 	read.n[0] = (s32)(get_pk2pk(SENSE_C))<<7;
-	
 
 	while(!adc_done()){}
-	FET_gnd(NO_FET);
-	_delay_us(DELAY);	
+	//FET_gnd(NO_FET);
+	//_delay_us(DELAY);	
 	DAC_enable(DAC_C);
 	FET_gnd(FET_A);
 	_delay_us(DELAY);	
-	reset_dma_adc(SENSE_B);
+	reset_dma_adc(SENSE_B,1);
 	read.n[1] = (s32)(get_pk2pk(SENSE_A))<<7;
 		
 
@@ -168,14 +164,15 @@ void induc_sense(void){
 	read.n[2] = (s32)(get_pk2pk(SENSE_B))<<7;			
 	DAC_enable(ALL_DISABLE);
 	FET_gnd(NO_FET);
+		
+	diode_gnd(0); // 1 break
+	HFI_read(0); // 1->read '
 	
-
 }
 
 
 
 void bemf_sense(void){
-	
 	BEMF_read(1);
 	DAC_enable(ALL_DISABLE);
 	//FET_gnd(NO_FET);
@@ -288,8 +285,6 @@ void sense_init(void){
 void bemf_test(void){
 
 	bemf_sense();
-		
-	
 	
 	offset = (x[0]+x[1]+x[2])/3;
 
@@ -302,7 +297,7 @@ void bemf_test(void){
 	kcos = (x[1]-x[2])/443;
 	position = (-app_atan2(ksin,kcos));
 	position/=250;
-	
+	k = (((ksin*ksin+kcos*kcos))*25+k*75)/100;
 	if(position<0){position+=144;}
 	position%=72;
 			
@@ -327,16 +322,12 @@ void bemf_test(void){
 void pos_update_induc(void){
 		
 	//bemf_sense();
-	
-	diode_gnd(1); // 1 break
-	HFI_read(1); // 1->read '
+
 		
 	s32 tri_x[3]={0};
 
 	induc_sense();
 	
-	diode_gnd(0); // 1 break
-	HFI_read(0); // 1->read '
 
 	u16 temp = get_abs();
 		
@@ -386,12 +377,10 @@ void pos_update_induc(void){
 		if(position>last_position){
 			last_position+=71;
 			curr_position = ((position+last_position)>>1)%72;
-			
 			last_position = position;
 		}else{
 			position+=71;
 			curr_position = ((position+last_position)>>1)%72;
-			
 			last_position = position-71;
 		}
 	
@@ -402,8 +391,8 @@ void pos_update_induc(void){
 	}
 	position = curr_position;
 	
-}*/
-
+}
+*/
 
 
 	position-=9;//????  I KNOW WHY LA Because this method did not seperate Ld Lq, so this offset is the cos(Ld/Lq) 
@@ -441,22 +430,7 @@ void pos_update_induc(void){
 
 
 void position_update(void){
-	
-	//TIM_SetCompare4(TIM3, TIM3->ARR+1);
-	//TIM_SetCompare1(TIM1, TIM1->ARR+1); 
-	//TIM_SetCompare4(TIM1, TIM1->ARR+1);
-	
-	//DAC_enable_init();
-	//FET_GPIO_init();
-	
-	
-	
-	
-	
-	u16 temp = get_abs();
-	
-	
-
+	_delay_us(80);	
 	bemf_sense();		
 	offset = (x[0]+x[1]+x[2])/3;
 
@@ -468,12 +442,13 @@ void position_update(void){
 	ksin = (x[0]-x[1]-x[2])>>9;
 	kcos = (x[1]-x[2])/443;
 	
-	k = (((ksin*ksin+kcos*kcos))*65+k*35)/100;//>>1)+(k>>1);
+	k = (((ksin*ksin+kcos*kcos))*20+k*80)/100;//>>1)+(k>>1);
 	
 //	uart_tx(COM3,"%d\n",k);
 	
-	if((k>K_THRESH&&sense_method)||(k>k_thresh&&!sense_method)){
-		position = (-app_atan2(ksin,kcos));
+	//if((k>K_THRESH&&sense_method)||(k>k_thresh&&!sense_method)){		
+		if(k>K_THRESH){
+			position = (-app_atan2(ksin,kcos));
 			position/=250;
 	
 			if(position<0){position+=144;}
@@ -496,7 +471,10 @@ void position_update(void){
 			sense_method=false;
 			return;
 	}
-	if(!sense_method){reset_filter_count();}
+	if(!sense_method){
+		reset_filter_count();
+		induc_sense();
+	}
 	pos_update_induc();
 	sense_method=true;
 }
@@ -563,6 +541,10 @@ void TIM5_init(void) {
 
 }
 
+
+u32 get_k(void){
+	return k;
+}
 
 void TIM5_IRQHandler(void){
 	

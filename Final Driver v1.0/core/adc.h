@@ -17,11 +17,11 @@ void DMA2_Stream0_IRQHandler(void);
 
 void adc_gpio_init(void);
 
-void adc_dma_init(u8 input);
+void adc_dma_init(u8 input, u8 buff);
 
 void adc_init(void);
 
-void reset_dma_adc(u8 input);
+void reset_dma_adc(u8 input,u8 buff);
 
 void pk2pk(u8 input);
 
@@ -40,6 +40,8 @@ bool adc_done(void);
 s32 median(u8 n, s32* x);
 
 void reset_filter_count(void);
+
+void toggle_FUCK(void);
 
 
 

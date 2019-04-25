@@ -30,6 +30,7 @@ u32 Gaub[8]={100,92,71,46,25,11,4,1};
 u32 sum_gaub = 350;
 u32 gaub_count[3]={0};
 
+u8 FUCKYOU = 0;
 
 
 u16 Gaussian_filter(s16 input,u8 channel){
@@ -131,7 +132,7 @@ void adc_bemf_init(u8 input){
 }
 
 
-void adc_dma_init(u8 input){
+void adc_dma_init(u8 input,u8 buff){
 
 
 	TIM8_init();
@@ -154,7 +155,11 @@ void adc_dma_init(u8 input){
 	ADC_Init(ADC1, &ADC_InitStru);
 	// specific for adc initi
 	DMA_InitStru.DMA_Memory0BaseAddr = (uint32_t) &(ADC_buffer[input]);
+	if(buff == 1){
 	DMA_InitStru.DMA_BufferSize = sense_buffer;
+	}else{
+	DMA_InitStru.DMA_BufferSize = 5;
+	}
 	DMA_Init(DMA2_Stream0, &DMA_InitStru); // DMA2 ADC1 S0C0  ADC2 S2C1 ADC3 S0C2
 	
 	
@@ -218,7 +223,7 @@ void adc_init(void){
 	DMA_InitStru.DMA_PeripheralBaseAddr = (uint32_t) &(ADC1)->DR;
 	
 	//ADC init
-	adc_dma_init(1);
+	adc_dma_init(1,1);
 	
 	NVIC_InitStructure.NVIC_IRQChannel = DMA2_Stream0_IRQn;
   NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
@@ -231,16 +236,19 @@ void adc_init(void){
 
 
 bool adc_done(void){
-	return !flag;
+	
+	if(flag == 1){return false;}
+	return true;
+	//return !flag;
 }
 
 
-void reset_dma_adc(u8 input){
-		if(flag){return;}
+void reset_dma_adc(u8 input,u8 buff){
+		//if(flag){return;}
 		flag = 1;
 		curr_input=input;
 		DMA_ClearITPendingBit(DMA2_Stream0, DMA_IT_TEIF0 | DMA_IT_DMEIF0 | DMA_IT_FEIF0 | DMA_IT_TCIF0 | DMA_IT_HTIF0);
-		adc_dma_init(input);
+		adc_dma_init(input,buff);
 		return ;
 }
 
@@ -282,13 +290,14 @@ s32 median(u8 n, s32* x) {
 
 void pk2pk2(u8 input){
 	
-		/*uart_tx(COM3,"wave=[");
-			for (u8 i=0;i<sense_buffer;i++){
+	if(FUCKYOU){
+		uart_tx(COM3,"wave=[");
+			for (u32 i=0;i<sense_buffer;i++){
 		uart_tx(COM3,"%d,",ADC_buffer[input][i]);
 		_delay_ms(1);
 	}
-	uart_tx(COM3,"];plot(wave(2:%d))\n",sense_buffer);*/
-	
+	uart_tx(COM3,"];plot(wave(2:%d))\n",sense_buffer);
+}
 	
 	
 	
@@ -331,6 +340,11 @@ void pk2pk2(u8 input){
 	//peak_to_peak[input] = ((peak2[1]-peak2[0])*SAM_F*100)/(get_freq()*8*314);
 	peak_to_peak[input] = ((peak2[1]-peak2[0]))>>2;
 	peak_to_peak[input]=Gaussian_filter(peak_to_peak[input],input);
+	
+	if(FUCKYOU){
+		uart_tx(COM3,"\n %d \n",peak_to_peak[input]);
+	}
+	
 	//HIF_BEMF[input] = sense_buffer*(peak2[1]+peak2[0])/8;
 	
 /*	if (diu==1&&input==0){
@@ -457,7 +471,7 @@ void uart_reading(void){
 
 
 void ADC_midpt_cal(u8 input){
-	reset_dma_adc(10+input);
+	//reset_dma_adc(10+input);
 	while(!adc_done()){}
 		
 	u32 mean = 0;
@@ -475,6 +489,17 @@ void reset_filter_count(void){
 	gau_count[0]=0;
 	gau_count[1]=0;
 	gau_count[2]=0;
+
+}
+
+
+void toggle_FUCK(void){
+	if(FUCKYOU==1){
+		FUCKYOU = 0;
+		return;
+	}
+	
+	FUCKYOU = 1;
 
 }
 

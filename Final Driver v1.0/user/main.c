@@ -1,9 +1,9 @@
 #include "main.h"
 
 #define DELAY 10
-#define TEST_ALGO pos_update_induc();
+#define TEST_ALGO position_update();
 #define DURATION 1000
-#define PPP 25
+#define PPP 35
 #define CCC (1000-PPP)
 
 //pos_update_induc();
@@ -33,10 +33,14 @@ void test_algo(void){
 	set_floating();
  
 	while(TIM3->CNT<10){}	
-
-  _delay_us(40);		
 	TEST_ALGO
 
+	//bemf_test();
+
+		
+		
+		
+		
 	current_sensing_init();
 	//cal_zero_mean();
 	PWM_init();
@@ -53,11 +57,25 @@ void test_algo(void){
 
 	}	*/
 		
-	set_floating();	
+	s16 eeerror = ABS(get_abs_angle()-get_pos()/2);
+	
+	if(eeerror>36){eeerror = 72-eeerror;}
+	
+	if(eeerror>10){
+		uart_tx(COM3,"%d %d\n",get_abs_angle(),get_pos()/2);
+	}
 		
-
-// set_PWM((app_sin(((get_ticks())%100)*360)*PPP/32768)+CCC,(app_sin(((get_ticks()+33)%100)*360)*PPP/32768)+CCC,(app_sin(((get_ticks()-33)%100)*360)*PPP/32768)+CCC);
-
+	 //set_floating();	
+	//	set_PWM(1001,1001,1001);
+	
+	if(get_ticks()%2000>1000){
+		set_PWM((app_sin(((get_ticks())%100)*360)*PPP/32768)-500+CCC,(app_sin(((get_ticks()+33)%100)*360)*PPP/32768)+CCC-500,(app_sin(((get_ticks()-33)%100)*360)*PPP/32768)+CCC-500);
+	}else{
+	  set_PWM((app_sin(((get_ticks())%50)*720)*PPP/32768)-500+CCC,(app_sin(((get_ticks()+12)%50)*720)*PPP/32768)+CCC-500,(app_sin(((get_ticks()-12)%50)*720)*PPP/32768)+CCC-500);
+	}
+		
+    
+	// set_PWM(app_sin(get_abs_angle()*500+9000)*PPP/32768-500,app_sin(get_abs_angle()*500+21000)*PPP/32768-500,app_sin(get_abs_angle()*500+33000)*PPP/32768-500);
 	
 }
 
@@ -124,14 +142,14 @@ int main(void) {
 		
 		
 		
-		for(u32 i=0;i<1000;i++){
-			test_algo();
-			//TEST_ALGO
+/*		for(u32 i=0;i<1000;i++){
+			//test_algo();
+			TEST_ALGO
 			//while(!adc_done()){}
 
 		}					
 		uart_tx(COM3,"%d\n",get_ticks()-curr_ticks);
-		while(1){}
+		while(1){}*/
 		
 			
 			
@@ -147,7 +165,7 @@ int main(void) {
 			//FET_gnd(FET_A);
 		//	  set_floating();
 			if(curr_ticks%100==1){
-				
+				//uart_tx(COM3,"%d,",get_k());
 				//	TEST_ALGO
 				//current_sensing_init();
 			 	//uart_tx(COM3,"%d,",get_abs());
@@ -157,6 +175,8 @@ int main(void) {
 					
 
 					//HFI_read(sum%2);
+					//FFFF++;
+					//FFFF%=2;
 					record_short();
 					//record();
 					//uart_bitch();
@@ -204,14 +224,14 @@ void record_short(void){
 				adc_read[2][i]=get_induc(2);*/
 				
 				
-				/*adc_read[0][i]=get_bemf_read(0);
+				adc_read[0][i]=get_bemf_read(0);
 				adc_read[1][i]=get_bemf_read(1);
-				adc_read[2][i]=get_bemf_read(2);*/
+				adc_read[2][i]=get_bemf_read(2);
 
 				
-				adc_read[0][i]=get_read(0);
+				/*adc_read[0][i]=get_read(0);
 				adc_read[1][i]=get_read(1);
-				adc_read[2][i]=get_read(2);
+				adc_read[2][i]=get_read(2);*/
 				
 
 				if(get_method()){
@@ -219,15 +239,8 @@ void record_short(void){
 				}else{
 					method[i]=0;
 				}
-				
-			 if(curr_ticks%100==3){
-					PWM_state++;
-					PWM_state%=6;
-
-			}
-				
-				
 				i++;
+
 		}
 					
 		}

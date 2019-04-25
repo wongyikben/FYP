@@ -12,7 +12,7 @@ plot(kang);
 kkang = zeros(1,length(t));
 time = zeros(1,length(t));
 %temp  = c-a;
-%temp1 = b-a;
+%temp1 = b-a
 
 %temp = a-b;
 %temp1 = c-b;

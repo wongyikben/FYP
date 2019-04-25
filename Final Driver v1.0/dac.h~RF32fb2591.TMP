@@ -1,0 +1,67 @@
+#ifndef _DAC_H
+#define _DAc_H
+
+#include "stm32f4xx.h"
+#include "stm32f4xx_tim.h"
+#include "stm32f4xx_dac.h"
+#include "stm32f4xx_dma.h"
+#include "stm32f4xx_rcc.h"
+#include "stdbool.h"
+
+
+
+#define FET_A 	0x04
+#define FET_B 	0x02
+#define FET_C 	0x01
+
+#define NO_FET 	0x00
+
+#define ALL_DISABLE  0x0000
+#define DAC_A 			 0x0008
+#define DAC_B 			 0x0010
+#define DAC_C        0x0020
+
+
+
+
+
+
+
+bool DAC_on(void);
+
+void DAC_enable_init(void);
+
+ // 0 -> all off
+ // 1 -> on a phase 
+ //	2 -> on b phase 
+ // 3 -> on c phase 
+ 
+void DAC_enable(u8 channel);
+
+void DAC_TIM4_Config(u16 period);
+
+void dac_init(u16 freq,u8 level);
+
+u32 get_voltage(void);
+
+
+void FET_GPIO_init(void);
+
+void FET_gnd(u16 input);
+
+void diode_gnd(u8 input);
+
+void diode_init(void);
+
+void HFI_init(void);
+
+void HFI_read(u8 input);
+
+u16 get_freq(void);
+
+u16 get_interval(void);
+
+
+
+
+#endif

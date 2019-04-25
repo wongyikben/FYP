@@ -13,11 +13,11 @@ void pos_update_bemf(void);
 
 void uart_bitch(void);
 
-
 void TIM5_init(void);
 
 void TIM5_IRQHandler(void);
 
+u32 get_k(void);
 
 u32 get_read(u8 index);
 
