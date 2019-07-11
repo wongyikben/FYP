@@ -2,7 +2,7 @@
 
 
 
-
+u16 last_PWM[3] = {0};
 
 int pwm_init_count = 0;
 
@@ -107,6 +107,7 @@ void PWM_init(){
 	}
 	
 	
+		set_PWM(last_PWM[0],last_PWM[1],last_PWM[2]);
 	TIM_SetCounter(TIM1,0);
 	TIM_SetCounter(TIM3,0);	
 	pwm_init_count++;
@@ -132,6 +133,10 @@ void set_PWM(s16 A, s16 B, s16 C){
 	if(B<0){B=0;}
 	if(C<0){C=0;}
 	PWM_A((u16)A);		PWM_B((u16)B);		PWM_C((u16)C);
+	
+	last_PWM[0] = (u16)A;
+	last_PWM[1] = (u16)B;
+	last_PWM[2] = (u16)C;
 }
 
 // Update PWM

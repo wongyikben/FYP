@@ -189,12 +189,15 @@ bool DAC_on(void){
 void FET_GPIO_init(void){
 	
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);      
-	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_9;
+	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_9|GPIO_Pin_8;
   GPIO_Init(GPIOC, &GPIO_InitStructure);
 	
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);      
-	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_9|GPIO_Pin_10;
+	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_8|GPIO_Pin_9|GPIO_Pin_10|GPIO_Pin_11;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
+	
+	GPIOA->ODR |= 0x0900;
+	GPIOC->ODR |= 0x0100;
 }
 
 

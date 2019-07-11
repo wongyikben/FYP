@@ -1,7 +1,7 @@
 #include "main.h"
 
 #define DELAY 10
-#define TEST_ALGO position_update();
+#define TEST_ALGO pos_update_induc();
 #define DURATION 1000
 #define PPP 35
 #define CCC (1000-PPP)
@@ -32,19 +32,17 @@ void record_short(void);
 void test_algo(void){
 	set_floating();
  
-	while(TIM3->CNT<10){}	
+	//while(TIM3->CNT<10){}	
+	//TEST_ALGO
+	//_delay_us(50);
 	TEST_ALGO
-
-	//bemf_test();
-
 		
 		
 		
-		
-	current_sensing_init();
+	//current_sensing_init();
 	//cal_zero_mean();
-	PWM_init();
-		
+	//PWM_init();
+	//set_floating();
 		
 		//set_PWM(500,550,550);
 	/*switch(PWM_state){
@@ -57,22 +55,22 @@ void test_algo(void){
 
 	}	*/
 		
-	s16 eeerror = ABS(get_abs_angle()-get_pos()/2);
+	/*s16 eeerror = ABS(get_abs_angle()-get_pos()/2);
 	
 	if(eeerror>36){eeerror = 72-eeerror;}
 	
 	if(eeerror>10){
 		uart_tx(COM3,"%d %d\n",get_abs_angle(),get_pos()/2);
-	}
+	}*/
 		
 	 //set_floating();	
-	//	set_PWM(1001,1001,1001);
+		//set_PWM(1001,1001,1001);
 	
-	if(get_ticks()%2000>1000){
+//	if(get_ticks()%2000>1000){
 		set_PWM((app_sin(((get_ticks())%100)*360)*PPP/32768)-500+CCC,(app_sin(((get_ticks()+33)%100)*360)*PPP/32768)+CCC-500,(app_sin(((get_ticks()-33)%100)*360)*PPP/32768)+CCC-500);
-	}else{
-	  set_PWM((app_sin(((get_ticks())%50)*720)*PPP/32768)-500+CCC,(app_sin(((get_ticks()+12)%50)*720)*PPP/32768)+CCC-500,(app_sin(((get_ticks()-12)%50)*720)*PPP/32768)+CCC-500);
-	}
+	//}else{
+	  // set_PWM((app_sin(((get_ticks())%50)*720)*PPP/32768)-500+CCC,(app_sin(((get_ticks()+12)%50)*720)*PPP/32768)+CCC-500,(app_sin(((get_ticks()-12)%50)*720)*PPP/32768)+CCC-500);
+//	}
 		
     
 	// set_PWM(app_sin(get_abs_angle()*500+9000)*PPP/32768-500,app_sin(get_abs_angle()*500+21000)*PPP/32768-500,app_sin(get_abs_angle()*500+33000)*PPP/32768-500);
@@ -142,7 +140,7 @@ int main(void) {
 		
 		
 		
-/*		for(u32 i=0;i<1000;i++){
+		/*for(u32 i=0;i<1000;i++){
 			//test_algo();
 			TEST_ALGO
 			//while(!adc_done()){}
@@ -165,10 +163,10 @@ int main(void) {
 			//FET_gnd(FET_A);
 		//	  set_floating();
 			if(curr_ticks%100==1){
-				//uart_tx(COM3,"%d,",get_k());
+				//uart_tx(COM3,"%d,%d;",get_fake_abs_enc(),get_abs());
 				//	TEST_ALGO
 				//current_sensing_init();
-			 	//uart_tx(COM3,"%d,",get_abs());
+			 	//uart_tx(COM3,"%d,",get_k());
 				
 				if(btn_onclick(SW)){
 					//diode_gnd(sum%2);
@@ -224,14 +222,14 @@ void record_short(void){
 				adc_read[2][i]=get_induc(2);*/
 				
 				
-				adc_read[0][i]=get_bemf_read(0);
+				/*adc_read[0][i]=get_bemf_read(0);
 				adc_read[1][i]=get_bemf_read(1);
-				adc_read[2][i]=get_bemf_read(2);
+				adc_read[2][i]=get_bemf_read(2);*/
 
 				
-				/*adc_read[0][i]=get_read(0);
+				adc_read[0][i]=get_read(0);
 				adc_read[1][i]=get_read(1);
-				adc_read[2][i]=get_read(2);*/
+				adc_read[2][i]=get_read(2);
 				
 
 				if(get_method()){

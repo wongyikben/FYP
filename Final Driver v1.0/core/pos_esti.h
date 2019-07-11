@@ -19,6 +19,8 @@ void TIM5_IRQHandler(void);
 
 u32 get_k(void);
 
+u16 get_fake_abs_enc(void);
+
 u32 get_read(u8 index);
 
 u32 get_induc(u8 index);

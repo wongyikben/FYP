@@ -8,10 +8,11 @@
 #include "../absEnc.h"
 #include "trigon_math.h"
 #include "uart.h"
+#include "../PWM.h"
 
 #define DELAY 7
 #define BEMF_DELAY 1
-#define K_THRESH 4000
+#define K_THRESH 100000
 #define k_thresh 5000
 
 
@@ -24,7 +25,7 @@ s32 last_pos = 0;
 s32 enc = 0;
 s32 last_enc = 0;
 s32 enc_vel = 0;
-
+u16 fake_abs_enc = 512;
 
 
 
@@ -101,7 +102,9 @@ output[2] = ((v*a)*inv_sqrt(R*R+(a+c)*(a+c)))>>9;
 
 }
 
-
+u16 get_fake_abs_enc(void){
+	return fake_abs_enc/2;
+}
 void enc_cal(void){
 	
 	if(ABS(position*true_count-last_pos)>72){
@@ -119,6 +122,9 @@ void enc_cal(void){
 	
 	// velocity 
 	enc_vel = (enc-last_enc);
+	fake_abs_enc-=enc_vel;
+	if(fake_abs_enc<0){fake_abs_enc+=2048;}
+	fake_abs_enc%=2048;
 	last_enc=enc;
 
 }
@@ -126,14 +132,18 @@ void enc_cal(void){
 void induc_sense(void){
 
 		
-	diode_gnd(1); // 1 break
-	HFI_read(1); // 1->read '
+	//diode_gnd(1); // 1 break
+	//HFI_read(1); // 1->read '
 	
-	DAC_enable(DAC_C);
+	//_delay_us(80);
+	
+	/*DAC_enable(DAC_C);
 	FET_gnd(FET_A);
 	_delay_us(DELAY);	
 	reset_dma_adc(SENSE_B,0);
-	while(!adc_done()){}
+	while(!adc_done()){}*/
+		
+	
 
 		
 		
@@ -248,7 +258,7 @@ void N_method(){
 
 void sense_init(void){
 
-	dac_init(200,7);
+	dac_init(220,8);
 	DAC_enable_init();
 	adc_init();
 	//FET_GPIO_init();
@@ -326,6 +336,9 @@ void pos_update_induc(void){
 		
 	s32 tri_x[3]={0};
 
+	diode_gnd(1); // 1 break
+	HFI_read(1); // 1->read 
+	FET_gnd(NO_FET);
 	induc_sense();
 	
 
@@ -422,6 +435,11 @@ void pos_update_induc(void){
 	// error calculation 
 	//position = (position*146/144);
 	true_count=1;
+	current_sensing_init();
+	PWM_init();	
+	
+	diode_gnd(0); // 1 break
+	HFI_read(0); // 1->read '
 	
 		
 }
@@ -430,7 +448,7 @@ void pos_update_induc(void){
 
 
 void position_update(void){
-	_delay_us(80);	
+	_delay_us(90);	
 	bemf_sense();		
 	offset = (x[0]+x[1]+x[2])/3;
 
@@ -443,7 +461,8 @@ void position_update(void){
 	kcos = (x[1]-x[2])/443;
 	
 	k = (((ksin*ksin+kcos*kcos))*20+k*80)/100;//>>1)+(k>>1);
-	
+
+
 //	uart_tx(COM3,"%d\n",k);
 	
 	//if((k>K_THRESH&&sense_method)||(k>k_thresh&&!sense_method)){		

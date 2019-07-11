@@ -1,14 +1,18 @@
-function [] = angle_test()
+function [] = angle_test(haha)
 t = 0:0.01:2*pi;
-a = cos(t);
-b = cos(t+2*pi/3);
-c = cos(t-2*pi/3);
-
+%a = cos(t);
+%b = cos(t+2*pi/3);
+%c = cos(t-2*pi/3);
+a = haha(1:500,1)';
+b = haha(1:500,2)';
+c = haha(1:500,3)';
 ksin = (a-b-c)./2;
 kcos = (b-c)./(2*sin(pi/3));
 kang = mod(atan2(ksin,kcos)-pi/2,2*pi);
 
 plot(kang);
+
+return
 kkang = zeros(1,length(t));
 time = zeros(1,length(t));
 %temp  = c-a;

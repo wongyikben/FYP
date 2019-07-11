@@ -253,7 +253,7 @@ void reset_dma_adc(u8 input,u8 buff){
 }
 
 void reset_dma_adc_bemf(u8 input){
-		if(flag){return;}
+		//if(flag){return;}
 		flag = 1;
 		curr_input=input;
 		DMA_ClearITPendingBit(DMA2_Stream0, DMA_IT_TEIF0 | DMA_IT_DMEIF0 | DMA_IT_FEIF0 | DMA_IT_TCIF0 | DMA_IT_HTIF0);
