@@ -170,7 +170,6 @@ void DAC_enable_init(void){
 
 
 void DAC_enable(u8 channel){
-	
 	GPIOC->ODR = (GPIOC->ODR&(~(DAC_A|DAC_B|DAC_C)))|channel;
 }
 
@@ -186,7 +185,7 @@ bool DAC_on(void){
 
 
 
-void FET_GPIO_init(void){
+inline void FET_GPIO_init(void){
 	
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);      
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_9|GPIO_Pin_8;
@@ -202,8 +201,6 @@ void FET_GPIO_init(void){
 
 
 void FET_gnd(u16 input){
-	FET_GPIO_init();
-	
 	switch(input){
 		case (FET_A):{
 			GPIOA->ODR = (GPIOA->ODR&0xF9FF)|0x0400;
@@ -221,6 +218,7 @@ void FET_gnd(u16 input){
 			break;			
 		}
 		default:{
+			FET_GPIO_init();
 			GPIOA->ODR = GPIOA->ODR&0xF9FF;
 			GPIOC->ODR = GPIOC->ODR&0xFDFF;
 			break;

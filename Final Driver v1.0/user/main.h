@@ -14,7 +14,7 @@
 //#include "spi_protocol.h"
 //#include "encoder.h"
 //#include "buzzer.h"
-#include "adc.h"
+//#include "adc.h"
 
 #include "button.h"
 //#include "lcd_main.h"

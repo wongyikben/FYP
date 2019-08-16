@@ -131,27 +131,16 @@ void enc_cal(void){
 
 void induc_sense(void){
 
-		
-	//diode_gnd(1); // 1 break
-	//HFI_read(1); // 1->read '
-	
-	//_delay_us(80);
-	
-	/*DAC_enable(DAC_C);
-	FET_gnd(FET_A);
-	_delay_us(DELAY);	
-	reset_dma_adc(SENSE_B,0);
-	while(!adc_done()){}*/
-		
-	
 
-		
-		
+	
 	DAC_enable(DAC_A);
 	FET_gnd(FET_B);
 	_delay_us(DELAY);
+	
   reset_dma_adc(SENSE_C,1);
+	
 	while(!adc_done()){}
+		
 
 	DAC_enable(DAC_B);
 	FET_gnd(FET_C);
@@ -160,8 +149,6 @@ void induc_sense(void){
 	read.n[0] = (s32)(get_pk2pk(SENSE_C))<<7;
 
 	while(!adc_done()){}
-	//FET_gnd(NO_FET);
-	//_delay_us(DELAY);	
 	DAC_enable(DAC_C);
 	FET_gnd(FET_A);
 	_delay_us(DELAY);	
@@ -175,8 +162,6 @@ void induc_sense(void){
 	DAC_enable(ALL_DISABLE);
 	FET_gnd(NO_FET);
 		
-	diode_gnd(0); // 1 break
-	HFI_read(0); // 1->read '
 	
 }
 
@@ -261,6 +246,9 @@ void sense_init(void){
 	dac_init(220,8);
 	DAC_enable_init();
 	adc_init();
+	
+	
+	
 	//FET_GPIO_init();
 	//vec3 temp;
 
@@ -275,8 +263,7 @@ void sense_init(void){
 	
 	x_vec[0].n[0]=1;
 	x_vec[0].n[1]=1;
-	x_vec[0].n[2]=1;
-	
+
 	induc_sense();
 
 	
@@ -333,13 +320,19 @@ void pos_update_induc(void){
 		
 	//bemf_sense();
 
-		
-	s32 tri_x[3]={0};
 
 	diode_gnd(1); // 1 break
-	HFI_read(1); // 1->read 
+	HFI_read(1); // 1->read 	
+	
+	s32 tri_x[3]={0};
+
+
 	FET_gnd(NO_FET);
 	induc_sense();
+	
+	
+	diode_gnd(0); // 1 break
+	HFI_read(0); // 1->read 	
 	
 
 	u16 temp = get_abs();
@@ -435,11 +428,9 @@ void pos_update_induc(void){
 	// error calculation 
 	//position = (position*146/144);
 	true_count=1;
-	current_sensing_init();
+	//current_sensing_init();
 	PWM_init();	
 	
-	diode_gnd(0); // 1 break
-	HFI_read(0); // 1->read '
 	
 		
 }
